@@ -2,7 +2,7 @@
 
 Provides detailed implementation guidance and best practices for each control to help organizations apply them effectively
 
-![ISO/IEC 27002:2022 Cloud Controls Mapping](https://github.com/azzedine062/ISO-CloudControlMap/blob/76243a4217cf29c2e33b2c189bcec512e8592d25/ISO%20Cloud%20Controls%20Mapping%201.png)
+![ISO/IEC 27002:2022 Cloud Controls Mapping]([https://github.com/azzedine062/ISO-CloudControlMap/blob/76243a4217cf29c2e33b2c189bcec512e8592d25/ISO%20Cloud%20Controls%20Mapping%201.png](https://github.com/azzedine062/azzedine062.github.io/blob/40ac73f1da9e07eccfe23c816ea990d912fc5ead/ISO%20Cloud%20Controls%20Mapping%201.png))
 
 I've created a simple dashboard that maps ISO/IEC 27002:2022 controls to specific cloud configurations and resources across cloud platforms like AWS, Azure. This tool is designed to bridge the gap between traditional information security controls and modern cloud environments.
 
