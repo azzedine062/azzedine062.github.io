@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>ISO/IEC 27002:2022 Cloud Controls Mapping</title>
+</head>
+<body>
+    <div class="container">
+        <h1>ISO/IEC 27002:2022 Cloud Controls Mapping</h1>
+        <h3 class="sub_title">Provides detailed implementation guidance and best practices for each control to help organizations apply them effectively</h3>
+        
+        <div class="filter-section">
+            <h3>🔍 Filter & Export Controls</h3>
+            <div class="filter-controls">
+                <input type="text" id="searchInput" placeholder="Search controls...">
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="5">5 - Organizational</option>
+                    <option value="6">6 - People</option>
+                    <option value="7">7 - Physical</option>
+                    <option value="8">8 - Technological</option>
+                </select>
+                <select id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="implemented">Implemented</option>
+                    <option value="partial">Partially Implemented</option>
+                    <option value="not-implemented">Not Implemented</option>
+                    <option value="not-applicable">Not Applicable</option>
+                </select>
+                <button class="export-btn" onclick="exportToExcel()">📊 Export to Excel</button>
+            </div>
+        </div>
+        
+        <div class="controls-grid" id="controlsGrid">
+            
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        const controls = [
+            {
+                id: "5.1",
+                title: "Policies for information security",
+                category: "5",
+                implementation: "Establish comprehensive information security policies covering cloud environments, data classification, and governance frameworks.",
+                aws: "AWS Config, AWS Organizations, AWS Control Tower for policy management and compliance tracking",
+                azure: "Azure Policy, Azure Management Groups, Azure Security Center for centralized policy enforcement",
+                evidence: "Security policy documents, policy approval records, policy review logs, compliance reports from Azure Policy/AWS Config"
+            },
+            {
+                id: "5.2",
+                title: "Information security roles and responsibilities",
+                category: "5",
+                implementation: "Define clear roles and responsibilities for cloud security, including IAM roles, security teams, and cloud architects.",
+                aws: "AWS IAM roles and policies, AWS Organizations account structure, AWS SSO role definitions",
+                azure: "Azure AD roles, Azure RBAC, Azure Privileged Identity Management (PIM) for role assignment",
+                evidence: "Role definition documents, IAM policy attachments, PIM activation logs, organizational charts with security responsibilities"
+            },
+            {
+                id: "5.3",
+                title: "Segregation of duties",
+                category: "5",
+                implementation: "Implement separation of duties through cloud IAM systems, ensuring no single person has excessive privileges.",
+                aws: "AWS IAM policies with least privilege, AWS Organizations SCPs, multi-person approval workflows",
+                azure: "Azure AD Conditional Access, Azure PIM approval workflows, Azure RBAC custom roles",
+                evidence: "IAM policy reviews, approval workflow logs, privilege escalation audit trails, segregation of duties matrix"
+            },
+            {
+                id: "5.4",
+                title: "Management responsibilities",
+                category: "5",
+                implementation: "Establish management oversight for cloud security through governance frameworks and regular reviews.",
+                aws: "AWS Control Tower dashboards, AWS Security Hub findings, AWS Config compliance reports",
+                azure: "Azure Security Center recommendations, Azure Monitor dashboards, Azure Resource Graph queries",
+                evidence: "Management review meeting minutes, security dashboard screenshots, compliance status reports, escalation procedures"
+            },
+            {
+                id: "5.5",
+                title: "Contact with authorities",
+                category: "5",
+                implementation: "Maintain procedures for contacting relevant authorities regarding security incidents in cloud environments.",
+                aws: "AWS Support cases, AWS incident response procedures, AWS compliance team contacts",
+                azure: "Azure Support tickets, Microsoft Security Response Center contacts, Azure incident response plans",
+                evidence: "Authority contact lists, incident escalation procedures, communication logs with authorities, legal compliance documentation"
+            },
+            {
+                id: "5.6",
+                title: "Contact with special interest groups",
+                category: "5",
+                implementation: "Engage with cloud security communities, industry groups, and threat intelligence sharing organizations.",
+                aws: "AWS security bulletins subscription, AWS re:Invent security sessions, AWS Well-Architected reviews",
+                azure: "Microsoft Security Intelligence reports, Azure security updates, Microsoft security community participation",
+                evidence: "Security bulletin subscriptions, threat intelligence reports, industry group membership records, security conference attendance"
+            },
+            {
+                id: "5.7",
+                title: "Threat intelligence",
+                category: "5",
+                implementation: "Implement threat intelligence gathering and analysis for cloud-specific threats and vulnerabilities.",
+                aws: "AWS GuardDuty findings, AWS Security Hub integrations, AWS Inspector vulnerability assessments",
+                azure: "Azure Security Center threat intelligence, Azure Sentinel threat hunting, Microsoft Defender ATP",
+                evidence: "Threat intelligence reports, GuardDuty/Security Center alerts, threat hunting queries, vulnerability assessment results"
+            },
+            {
+                id: "5.8",
+                title: "Information security in project management",
+                category: "5",
+                implementation: "Integrate security requirements into cloud project lifecycles and DevOps practices.",
+                aws: "AWS Service Catalog security templates, AWS CodePipeline security gates, AWS Systems Manager compliance",
+                azure: "Azure DevOps security extensions, Azure Resource Manager template security, Azure Security Center integration",
+                evidence: "Project security requirements documents, security gate approvals, code pipeline security scans, template security reviews"
+            },
+            {
+                id: "5.9",
+                title: "Inventory of information and other associated assets",
+                category: "5",
+                implementation: "Maintain comprehensive inventory of cloud assets, data, and dependencies across multi-cloud environments.",
+                aws: "AWS Config resource inventory, AWS Systems Manager inventory, AWS Resource Groups tagging",
+                azure: "Azure Resource Graph, Azure Resource Manager tags, Azure Security Center asset inventory",
+                evidence: "Asset inventory reports, resource tagging compliance, configuration drift reports, asset ownership documentation"
+            },
+            {
+                id: "5.10",
+                title: "Acceptable use of information and other associated assets",
+                category: "5",
+                implementation: "Define acceptable use policies for cloud resources, data handling, and service consumption.",
+                aws: "AWS Organizations policies, AWS Config rules for resource compliance, AWS Cost Explorer usage monitoring",
+                azure: "Azure Policy compliance, Azure Cost Management usage tracking, Azure Resource Manager deployment policies",
+                evidence: "Acceptable use policy documents, policy violation reports, usage monitoring dashboards, cost anomaly alerts"
+            },
+            {
+                id: "5.11",
+                title: "Return of assets",
+                category: "5",
+                implementation: "Establish procedures for secure return and disposal of cloud assets, including data and access credentials.",
+                aws: "AWS IAM access key rotation, AWS Secrets Manager credential lifecycle, AWS S3 object lifecycle policies",
+                azure: "Azure AD credential management, Azure Key Vault key rotation, Azure Storage lifecycle management",
+                evidence: "Asset return procedures, credential rotation logs, data deletion certificates, access revocation records"
+            },
+            {
+                id: "5.12",
+                title: "Classification of information",
+                category: "5",
+                implementation: "Implement data classification schemes with appropriate cloud security controls and access restrictions.",
+                aws: "AWS S3 bucket policies, AWS KMS encryption keys, AWS Macie data classification, AWS Resource tagging",
+                azure: "Azure Information Protection labels, Azure Storage access tiers, Azure Security Center data classification",
+                evidence: "Data classification policy, classification labels applied, access control matrices, encryption key usage reports"
+            },
+            {
+                id: "5.13",
+                title: "Labelling of information",
+                category: "5",
+                implementation: "Apply consistent labeling to cloud resources and data based on classification and sensitivity levels.",
+                aws: "AWS Resource Tags, AWS S3 object metadata, AWS Systems Manager parameter labels",
+                azure: "Azure Resource Tags, Azure Information Protection labels, Azure Blob metadata",
+                evidence: "Labeling standards documentation, tag compliance reports, metadata audit trails, label application logs"
+            },
+            {
+                id: "5.14",
+                title: "Information transfer",
+                category: "5",
+                implementation: "Secure information transfer between cloud services, regions, and external systems using encryption and secure protocols.",
+                aws: "AWS DataSync, AWS Direct Connect, AWS VPN, AWS S3 Transfer Acceleration with encryption",
+                azure: "Azure Data Factory, Azure ExpressRoute, Azure VPN Gateway, Azure Storage secure transfer",
+                evidence: "Data transfer logs, encryption certificates, secure channel configurations, transfer approval records"
+            },
+            {
+                id: "5.15",
+                title: "Access control",
+                category: "5",
+                implementation: "Implement comprehensive access control using cloud IAM systems with least privilege principles.",
+                aws: "AWS IAM policies, AWS SSO, AWS Organizations, AWS Resource Access Manager",
+                azure: "Azure AD, Azure RBAC, Azure PIM, Azure AD Conditional Access",
+                evidence: "Access control policies, IAM role assignments, access reviews, privilege escalation logs"
+            },
+            {
+                id: "5.16",
+                title: "Identity management",
+                category: "5",
+                implementation: "Establish centralized identity management across cloud platforms with federation and SSO capabilities.",
+                aws: "AWS IAM Identity Center, AWS Directory Service, AWS Cognito",
+                azure: "Azure AD, Azure AD B2B, Azure AD Domain Services",
+                evidence: "Identity lifecycle procedures, user provisioning logs, federation configuration, identity verification records"
+            },
+            {
+                id: "5.17",
+                title: "Authentication information",
+                category: "5",
+                implementation: "Secure management of authentication credentials using cloud-native secret management services.",
+                aws: "AWS Secrets Manager, AWS Systems Manager Parameter Store, AWS KMS",
+                azure: "Azure Key Vault, Azure AD credential management, Azure Managed Identity",
+                evidence: "Credential management policies, secret rotation logs, authentication audit trails, MFA usage reports"
+            },
+            {
+                id: "5.18",
+                title: "Access rights",
+                category: "5",
+                implementation: "Regular review and management of access rights across cloud resources and services.",
+                aws: "AWS IAM Access Analyzer, AWS CloudTrail access reviews, AWS Config access compliance",
+                azure: "Azure AD access reviews, Azure PIM access audits, Azure Security Center recommendations",
+                evidence: "Access review reports, right assignment changes, access certification records, privilege usage analytics"
+            },
+            {
+                id: "5.19",
+                title: "Information security in supplier relationships",
+                category: "5",
+                implementation: "Assess and manage security risks in cloud supplier relationships and third-party integrations.",
+                aws: "AWS Marketplace security assessments, AWS Service Catalog approved products, AWS Partner competencies",
+                azure: "Azure Marketplace security reviews, Azure Certified solutions, Microsoft partner security validation",
+                evidence: "Supplier security assessments, third-party audit reports, contract security clauses, vendor risk registers"
+            },
+            {
+                id: "5.20",
+                title: "Addressing information security within supplier agreements",
+                category: "5",
+                implementation: "Include specific security requirements in cloud service agreements and vendor contracts.",
+                aws: "AWS Customer Agreement reviews, AWS shared responsibility model documentation, AWS compliance certifications",
+                azure: "Microsoft Cloud Agreement terms, Azure shared responsibility model, Microsoft compliance offerings",
+                evidence: "Contract security annexes, SLA security requirements, compliance certification validation, breach notification procedures"
+            },
+            {
+                id: "5.21",
+                title: "Managing information security in the ICT supply chain",
+                category: "5",
+                implementation: "Secure the ICT supply chain including cloud services, software dependencies, and integration points.",
+                aws: "AWS Supply Chain Security, AWS Systems Manager patch management, AWS Inspector vulnerability scanning",
+                azure: "Azure Supply Chain Security, Azure Update Management, Azure Security Center vulnerability assessment",
+                evidence: "Supply chain risk assessments, dependency scanning reports, patch management logs, vulnerability remediation tracking"
+            },
+            {
+                id: "5.22",
+                title: "Monitoring, review and change management of supplier services",
+                category: "5",
+                implementation: "Monitor and review cloud supplier services performance and security posture continuously.",
+                aws: "AWS CloudWatch monitoring, AWS Config compliance tracking, AWS Security Hub findings",
+                azure: "Azure Monitor, Azure Policy compliance, Azure Security Center continuous assessment",
+                evidence: "Supplier performance reports, security monitoring dashboards, change approval records, service review meetings"
+            },
+            {
+                id: "5.23",
+                title: "Information security for use of cloud services",
+                category: "5",
+                implementation: "Implement security controls specific to cloud service usage, including data residency and governance.",
+                aws: "AWS Well-Architected Security Pillar, AWS Landing Zone, AWS Control Tower governance",
+                azure: "Azure Security Benchmark, Azure Landing Zones, Azure Governance and compliance",
+                evidence: "Cloud security assessments, Well-Architected reviews, governance framework documentation, data residency compliance reports"
+            },
+            {
+                id: "5.24",
+                title: "Information security incident management planning and preparation",
+                category: "5",
+                implementation: "Develop incident response plans specific to cloud environments and integrate with cloud-native security tools.",
+                aws: "AWS Security Hub incident response, AWS Systems Manager incident management, AWS Support incident escalation",
+                azure: "Azure Security Center incident response, Azure Monitor alert management, Azure Support incident tracking",
+                evidence: "Incident response plans, tabletop exercise records, response team contact lists, escalation procedures"
+            },
+            {
+                id: "5.25",
+                title: "Assessment and decision on information security events",
+                category: "5",
+                implementation: "Establish procedures for assessing and categorizing security events in cloud environments.",
+                aws: "AWS GuardDuty findings analysis, AWS Security Hub event correlation, AWS CloudTrail event investigation",
+                azure: "Azure Security Center alert investigation, Azure Sentinel event correlation, Azure Monitor log analysis",
+                evidence: "Event classification procedures, security event logs, incident escalation records, decision frameworks"
+            },
+            {
+                id: "5.26",
+                title: "Response to information security incidents",
+                category: "5",
+                implementation: "Implement coordinated incident response procedures for cloud security incidents.",
+                aws: "AWS Incident Response team procedures, AWS Systems Manager automation, AWS Lambda response functions",
+                azure: "Azure Security Center automated response, Azure Logic Apps incident workflows, Azure Sentinel playbooks",
+                evidence: "Incident response logs, automated response executions, containment action records, recovery procedures"
+            },
+            {
+                id: "5.27",
+                title: "Learning from information security incidents",
+                category: "5",
+                implementation: "Establish processes to learn from cloud security incidents and improve security posture.",
+                aws: "AWS Security Hub trend analysis, AWS Config compliance evolution, AWS Well-Architected reviews",
+                azure: "Azure Security Center improvement tracking, Azure Sentinel analytics, Azure Monitor trend analysis",
+                evidence: "Incident post-mortem reports, lessons learned documentation, security improvement plans, trend analysis reports"
+            },
+            {
+                id: "5.28",
+                title: "Collection of evidence",
+                category: "5",
+                implementation: "Implement evidence collection procedures for cloud environments supporting forensic analysis.",
+                aws: "AWS CloudTrail log retention, AWS Config history, AWS VPC Flow Logs, AWS S3 access logging",
+                azure: "Azure Activity Log retention, Azure Monitor logs, Azure Network Security Group logs, Azure Storage analytics",
+                evidence: "Evidence collection procedures, log retention policies, forensic analysis capabilities, chain of custody documentation"
+            },
+            {
+                id: "5.29",
+                title: "Information security during disruption",
+                category: "5",
+                implementation: "Maintain information security during business disruptions using cloud resilience capabilities.",
+                aws: "AWS Business Continuity planning, AWS Backup services, AWS Disaster Recovery solutions",
+                azure: "Azure Business Continuity, Azure Backup, Azure Site Recovery",
+                evidence: "Business continuity plans, backup verification tests, disaster recovery procedures, continuity exercise records"
+            },
+            {
+                id: "5.30",
+                title: "ICT readiness for business continuity",
+                category: "5",
+                implementation: "Ensure ICT systems including cloud services are prepared for business continuity scenarios.",
+                aws: "AWS RTO/RPO planning, AWS Multi-AZ deployments, AWS Cross-region replication",
+                azure: "Azure availability zones, Azure geo-replication, Azure Traffic Manager",
+                evidence: "ICT continuity plans, RTO/RPO documentation, availability testing results, failover procedure validation"
+            },
+            {
+                id: "5.31",
+                title: "Legal, statutory, regulatory and contractual requirements",
+                category: "5",
+                implementation: "Ensure cloud deployments comply with legal, regulatory, and contractual requirements.",
+                aws: "AWS Compliance programs, AWS Artifact documentation, AWS Config compliance rules",
+                azure: "Azure Compliance offerings, Azure Trust Center, Azure Policy regulatory compliance",
+                evidence: "Compliance assessment reports, regulatory mapping documentation, audit findings, legal review records"
+            },
+            {
+                id: "5.32",
+                title: "Intellectual property rights",
+                category: "5",
+                implementation: "Protect intellectual property rights in cloud environments through appropriate controls and agreements.",
+                aws: "AWS data ownership documentation, AWS encryption services, AWS access controls",
+                azure: "Azure data ownership terms, Azure encryption services, Azure access management",
+                evidence: "IP protection procedures, data ownership documentation, encryption key management, access control records"
+            },
+            {
+                id: "5.33",
+                title: "Protection of records",
+                category: "5",
+                implementation: "Implement protection measures for records stored in cloud environments with appropriate retention policies.",
+                aws: "AWS S3 Object Lock, AWS Glacier compliance features, AWS Config record retention",
+                azure: "Azure Storage immutable policies, Azure Archive Storage, Azure Policy retention rules",
+                evidence: "Record retention schedules, immutable storage configurations, record protection procedures, disposal certificates"
+            },
+            {
+                id: "5.34",
+                title: "Privacy and protection of PII",
+                category: "5",
+                implementation: "Implement comprehensive privacy protection for PII in cloud environments with appropriate controls.",
+                aws: "AWS Macie PII detection, AWS KMS encryption, AWS IAM data access controls",
+                azure: "Azure Information Protection, Azure Key Vault, Azure Purview data classification",
+                evidence: "Privacy impact assessments, PII inventory records, data processing agreements, consent management logs"
+            },
+            {
+                id: "5.35",
+                title: "Independent review of information security",
+                category: "5",
+                implementation: "Conduct independent reviews of cloud security implementations and controls effectiveness.",
+                aws: "AWS Well-Architected reviews, AWS Security Hub assessments, third-party cloud audits",
+                azure: "Azure Security Center assessments, Azure Advisor recommendations, independent security audits",
+                evidence: "Independent audit reports, security assessment findings, remediation tracking, review schedules"
+            },
+            {
+                id: "5.36",
+                title: "Compliance with policies, rules and standards for information security",
+                category: "5",
+                implementation: "Ensure ongoing compliance with security policies and standards across cloud environments.",
+                aws: "AWS Config compliance monitoring, AWS Security Hub standards compliance, AWS Systems Manager compliance",
+                azure: "Azure Policy compliance, Azure Security Center regulatory compliance, Azure Compliance Manager",
+                evidence: "Compliance monitoring reports, policy violation tracking, remediation evidence, compliance certification maintenance"
+            },
+            {
+                id: "5.37",
+                title: "Documented operating procedures",
+                category: "5",
+                implementation: "Maintain documented operating procedures for cloud security operations and incident response.",
+                aws: "AWS Systems Manager documents, AWS Service Catalog operational procedures, AWS runbook automation",
+                azure: "Azure Automation runbooks, Azure Resource Manager templates, Azure Service Health procedures",
+                evidence: "Operating procedure documentation, procedure update logs, training records, execution verification"
+            },
+            {
+                id: "6.1",
+                title: "Screening",
+                category: "6",
+                implementation: "Implement background screening procedures for personnel with access to cloud resources and sensitive data.",
+                aws: "AWS IAM user lifecycle management, AWS SSO user provisioning, AWS Organizations account access",
+                azure: "Azure AD user lifecycle, Azure AD B2B external user management, Azure PIM eligible assignments",
+                evidence: "Background screening records, security clearance documentation, access approval workflows, screening policy compliance"
+            },
+            {
+                id: "6.2",
+                title: "Terms and conditions of employment",
+                category: "6",
+                implementation: "Include cloud security responsibilities and confidentiality requirements in employment terms.",
+                aws: "AWS access responsibilities documentation, AWS acceptable use policies, AWS data handling requirements",
+                azure: "Azure access governance, Azure acceptable use policies, Azure data protection requirements",
+                evidence: "Employment contracts with security clauses, signed confidentiality agreements, security training acknowledgments"
+            },
+            {
+                id: "6.3",
+                title: "Information security awareness, education and training",
+                category: "6",
+                implementation: "Provide comprehensive cloud security awareness training and education programs.",
+                aws: "AWS Training and Certification programs, AWS Security best practices training, AWS Well-Architected education",
+                azure: "Microsoft Learn security modules, Azure security training, Azure certification programs",
+                evidence: "Training completion records, security awareness test results, certification achievements, training program evaluations"
+            },
+            {
+                id: "6.4",
+                title: "Disciplinary process",
+                category: "6",
+                implementation: "Establish disciplinary procedures for cloud security policy violations and incidents.",
+                aws: "AWS CloudTrail violation detection, AWS Config rule violations, AWS access review procedures",
+                azure: "Azure AD risk-based authentication, Azure Policy violation reporting, Azure Security Center recommendations",
+                evidence: "Disciplinary procedure documentation, security violation records, corrective action tracking, policy enforcement logs"
+            },
+            {
+                id: "6.5",
+                title: "Responsibilities after termination or change of employment",
+                category: "6",
+                implementation: "Manage cloud access termination and responsibility transfer procedures for employment changes.",
+                aws: "AWS IAM user deactivation, AWS SSO account management, AWS resource ownership transfer",
+                azure: "Azure AD account lifecycle, Azure PIM role deactivation, Azure resource management transfer",
+                evidence: "Termination checklists, access revocation logs, resource transfer documentation, exit interview records"
+            },
+            {
+                id: "6.6",
+                title: "Confidentiality or non-disclosure agreements",
+                category: "6",
+                implementation: "Implement confidentiality agreements covering cloud data and security information access.",
+                aws: "AWS data confidentiality requirements, AWS shared responsibility model understanding, AWS compliance obligations",
+                azure: "Azure data confidentiality terms, Azure shared responsibility model, Azure compliance requirements",
+                evidence: "Signed NDAs, confidentiality training records, data handling acknowledgments, breach notification procedures"
+            },
+            {
+                id: "6.7",
+                title: "Remote working",
+                category: "6",
+                implementation: "Secure remote access to cloud resources using VPN, MFA, and endpoint protection.",
+                aws: "AWS Client VPN, AWS SSO MFA, AWS WorkSpaces secure desktops, AWS Systems Manager Session Manager",
+                azure: "Azure VPN Gateway, Azure AD MFA, Azure Virtual Desktop, Azure Bastion",
+                evidence: "Remote work policies, VPN connection logs, MFA usage reports, endpoint security compliance"
+            },
+            {
+                id: "6.8",
+                title: "Information security event reporting",
+                category: "6",
+                implementation: "Establish procedures for personnel to report cloud security events and incidents.",
+                aws: "AWS Security Hub event reporting, AWS Support case management, AWS incident escalation procedures",
+                azure: "Azure Security Center incident reporting, Azure Support ticket management, Azure incident response procedures",
+                evidence: "Event reporting procedures, incident report logs, escalation workflows, training on reporting requirements"
+            },
+            {
+                id: "7.1",
+                title: "Physical security perimeters",
+                category: "7",
+                implementation: "Ensure cloud providers maintain appropriate physical security perimeters for data centers.",
+                aws: "AWS data center security documentation, AWS compliance certifications (SOC 2, ISO 27001)",
+                azure: "Azure data center security controls, Microsoft compliance certifications, Azure Trust Center documentation",
+                evidence: "Cloud provider security certifications, data center audit reports, physical security assessments, compliance documentation"
+            },
+            {
+                id: "7.2",
+                title: "Physical entry",
+                category: "7",
+                implementation: "Verify cloud providers implement appropriate physical entry controls for data centers.",
+                aws: "AWS physical access controls documentation, AWS shared responsibility model physical layer",
+                azure: "Azure physical access controls, Microsoft data center security documentation",
+                evidence: "Physical access control procedures, data center security audit reports, access control system documentation"
+            },
+            {
+                id: "7.3",
+                title: "Protection against environmental threats",
+                category: "7",
+                implementation: "Ensure cloud providers protect against environmental threats in data centers and implement redundancy.",
+                aws: "AWS Availability Zones, AWS data center environmental controls, AWS disaster recovery capabilities",
+                azure: "Azure availability zones, Azure data center environmental protection, Azure geo-redundancy",
+                evidence: "Environmental protection certifications, disaster recovery test results, availability zone documentation, redundancy configurations"
+            },
+            {
+                id: "7.4",
+                title: "Equipment maintenance",
+                category: "7",
+                implementation: "Verify cloud providers maintain equipment properly and provide transparency on maintenance impacts.",
+                aws: "AWS Service Health Dashboard, AWS maintenance notifications, AWS infrastructure maintenance procedures",
+                azure: "Azure Service Health, Azure maintenance notifications, Azure infrastructure maintenance documentation",
+                evidence: "Maintenance schedules, service health notifications, maintenance impact assessments, equipment lifecycle documentation"
+            },
+            {
+                id: "7.5",
+                title: "Secure disposal or reuse of equipment",
+                category: "7",
+                implementation: "Ensure cloud providers securely dispose of or reuse equipment containing sensitive data.",
+                aws: "AWS data destruction procedures, AWS hardware disposal certification, AWS compliance documentation",
+                azure: "Azure data destruction procedures, Microsoft hardware disposal certification, Azure compliance documentation",
+                evidence: "Data destruction certificates, hardware disposal procedures, compliance audit reports, chain of custody documentation"
+            },
+            {
+                id: "7.6",
+                title: "Clear desk and clear screen",
+                category: "7",
+                implementation: "Implement clear desk and screen policies for remote work accessing cloud resources.",
+                aws: "AWS WorkSpaces screen lock policies, AWS AppStream session timeout, AWS Systems Manager compliance",
+                azure: "Azure Virtual Desktop screen lock, Azure App Service session management, Azure AD conditional access",
+                evidence: "Clear desk policies, screen lock configurations, session timeout settings, compliance monitoring reports"
+            },
+            {
+                id: "7.7",
+                title: "Equipment siting and protection",
+                category: "7",
+                implementation: "Ensure proper siting and protection of equipment used to access cloud resources.",
+                aws: "AWS IoT device management, AWS Greengrass edge protection, AWS Systems Manager hybrid management",
+                azure: "Azure IoT device management, Azure IoT Edge security, Azure Arc hybrid management",
+                evidence: "Equipment siting procedures, device protection policies, hybrid environment security assessments, edge device inventories"
+            },
+            {
+                id: "7.8",
+                title: "Equipment maintenance",
+                category: "7",
+                implementation: "Maintain equipment used for cloud access with proper security controls during maintenance.",
+                aws: "AWS Systems Manager patch management, AWS Inspector agent maintenance, AWS SSM maintenance windows",
+                azure: "Azure Update Management, Azure Security Center agent maintenance, Azure Automation maintenance",
+                evidence: "Equipment maintenance logs, patch management reports, maintenance window schedules, security agent updates"
+            },
+            {
+                id: "7.9",
+                title: "Removal of assets",
+                category: "7",
+                implementation: "Secure procedures for removing equipment that has accessed cloud resources.",
+                aws: "AWS device deregistration procedures, AWS IoT device removal, AWS Systems Manager agent removal",
+                azure: "Azure device cleanup procedures, Azure AD device removal, Azure Arc agent removal",
+                evidence: "Asset removal procedures, device deregistration logs, cleanup verification reports, inventory update records"
+            },
+            {
+                id: "7.10",
+                title: "Storage media",
+                category: "7",
+                implementation: "Secure management of storage media used with cloud services and hybrid environments.",
+                aws: "AWS Storage Gateway encryption, AWS EBS encryption, AWS S3 encryption at rest",
+                azure: "Azure Storage encryption, Azure Disk encryption, Azure Data Box encryption",
+                evidence: "Storage media encryption policies, encryption key management, media handling procedures, encryption verification reports"
+            },
+            {
+                id: "7.11",
+                title: "Supporting utilities",
+                category: "7",
+                implementation: "Ensure supporting utilities for cloud access are properly secured and monitored.",
+                aws: "AWS Direct Connect redundancy, AWS VPN backup connections, AWS network monitoring",
+                azure: "Azure ExpressRoute redundancy, Azure VPN backup, Azure Network Watcher monitoring",
+                evidence: "Utility redundancy configurations, backup connection tests, network monitoring reports, utility security assessments"
+            },
+            {
+                id: "7.12",
+                title: "Cabling security",
+                category: "7",
+                implementation: "Secure network cabling used for cloud connectivity and hybrid environments.",
+                aws: "AWS Direct Connect physical security, AWS VPN encrypted tunnels, AWS network segmentation",
+                azure: "Azure ExpressRoute physical security, Azure VPN encrypted connections, Azure network segmentation",
+                evidence: "Cabling security procedures, physical connection audits, network segmentation configurations, cable protection measures"
+            },
+            {
+                id: "7.13",
+                title: "Equipment maintenance",
+                category: "7",
+                implementation: "Maintain network and security equipment used for cloud connectivity.",
+                aws: "AWS networking equipment maintenance, AWS firewall rule updates, AWS load balancer maintenance",
+                azure: "Azure networking equipment maintenance, Azure Firewall rule management, Azure Load Balancer maintenance",
+                evidence: "Equipment maintenance schedules, firmware update logs, configuration change records, maintenance verification reports"
+            },
+            {
+                id: "7.14",
+                title: "Secure disposal or reuse of equipment",
+                category: "7",
+                implementation: "Securely dispose of equipment that has accessed cloud resources.",
+                aws: "AWS device credential removal, AWS certificate revocation, AWS access key deactivation",
+                azure: "Azure device credential cleanup, Azure certificate revocation, Azure access key removal",
+                evidence: "Equipment disposal procedures, credential removal logs, certificate revocation lists, disposal verification certificates"
+            },
+            {
+                id: "8.1",
+                title: "User endpoint devices",
+                category: "8",
+                implementation: "Secure user endpoint devices accessing cloud resources with appropriate controls.",
+                aws: "AWS Device Farm testing, AWS AppStream secure access, AWS WorkSpaces managed desktops",
+                azure: "Azure Virtual Desktop, Azure AD device management, Microsoft Intune device compliance",
+                evidence: "Device security policies, endpoint protection status, device compliance reports, managed device inventories"
+            },
+            {
+                id: "8.2",
+                title: "Privileged access rights",
+                category: "8",
+                implementation: "Manage privileged access to cloud resources using just-in-time access and approval workflows.",
+                aws: "AWS IAM privileged access, AWS SSO privileged roles, AWS Organizations master account access",
+                azure: "Azure PIM privileged access, Azure AD privileged roles, Azure Lighthouse delegated access",
+                evidence: "Privileged access policies, PIM activation logs, privileged account inventories, access approval records"
+            },
+            {
+                id: "8.3",
+                title: "Information access restriction",
+                category: "8",
+                implementation: "Implement information access restrictions using cloud-native access controls and data loss prevention.",
+                aws: "AWS IAM resource-based policies, AWS S3 bucket policies, AWS Macie data access monitoring",
+                azure: "Azure RBAC, Azure Storage access policies, Azure Information Protection access restrictions",
+                evidence: "Access restriction policies, data access logs, DLP policy violations, access control matrices"
+            },
+            {
+                id: "8.4",
+                title: "Access to source code",
+                category: "8",
+                implementation: "Control access to source code repositories and development environments in cloud platforms.",
+                aws: "AWS CodeCommit access controls, AWS CodeBuild environment security, AWS CodePipeline access policies",
+                azure: "Azure DevOps access controls, Azure Repos security, Azure Pipelines access management",
+                evidence: "Source code access policies, repository access logs, development environment security configs, code review records"
+            },
+            {
+                id: "8.5",
+                title: "Secure authentication",
+                category: "8",
+                implementation: "Implement secure authentication for cloud services using MFA and strong authentication methods.",
+                aws: "AWS IAM MFA, AWS SSO SAML federation, AWS Cognito authentication",
+                azure: "Azure AD MFA, Azure AD B2C authentication, Azure AD passwordless authentication",
+                evidence: "Authentication policies, MFA usage reports, authentication logs, password policy compliance"
+            },
+            {
+                id: "8.6",
+                title: "Capacity management",
+                category: "8",
+                implementation: "Implement capacity management for cloud resources with auto-scaling and monitoring.",
+                aws: "AWS Auto Scaling, AWS CloudWatch capacity monitoring, AWS Trusted Advisor recommendations",
+                azure: "Azure Autoscale, Azure Monitor capacity alerts, Azure Advisor capacity recommendations",
+                evidence: "Capacity management procedures, auto-scaling configurations, capacity monitoring reports, performance baselines"
+            },
+            {
+                id: "8.7",
+                title: "Protection against malware",
+                category: "8",
+                implementation: "Implement malware protection across cloud workloads and endpoints.",
+                aws: "AWS GuardDuty malware detection, AWS Inspector security assessments, AWS Systems Manager antimalware",
+                azure: "Azure Security Center malware protection, Microsoft Defender for Cloud, Azure Antimalware",
+                evidence: "Malware protection policies, antimalware scan reports, threat detection logs, malware incident records"
+            },
+            {
+                id: "8.8",
+                title: "Management of technical vulnerabilities",
+                category: "8",
+                implementation: "Manage technical vulnerabilities in cloud infrastructure and applications systematically.",
+                aws: "AWS Inspector vulnerability assessments, AWS Systems Manager patch management, AWS Security Hub findings",
+                azure: "Azure Security Center vulnerability assessment, Azure Update Management, Azure Defender recommendations",
+                evidence: "Vulnerability management procedures, vulnerability scan reports, patch management logs, remediation tracking"
+            },
+            {
+                id: "8.9",
+                title: "Configuration management",
+                category: "8",
+                implementation: "Implement configuration management for cloud resources with version control and compliance monitoring.",
+                aws: "AWS Config configuration management, AWS Systems Manager compliance, AWS CloudFormation templates",
+                azure: "Azure Policy configuration compliance, Azure Resource Manager templates, Azure Automation State Configuration",
+                evidence: "Configuration management procedures, configuration drift reports, template version control, compliance monitoring"
+            },
+            {
+                id: "8.10",
+                title: "Information deletion",
+                category: "8",
+                implementation: "Implement secure information deletion procedures for cloud-stored data.",
+                aws: "AWS S3 object deletion, AWS EBS volume wiping, AWS KMS key deletion",
+                azure: "Azure Storage deletion, Azure Disk secure deletion, Azure Key Vault key deletion",
+                evidence: "Data deletion procedures, deletion verification logs, secure deletion certificates, retention policy compliance"
+            },
+            {
+                id: "8.11",
+                title: "Data masking",
+                category: "8",
+                implementation: "Implement data masking for sensitive information in cloud environments.",
+                aws: "AWS Glue data masking, AWS RDS parameter groups, AWS Lambda data transformation",
+                azure: "Azure SQL Database data masking, Azure Data Factory data transformation, Azure Synapse data masking",
+                evidence: "Data masking policies, masking rule configurations, data transformation logs, masking effectiveness reports"
+            },
+            {
+                id: "8.12",
+                title: "Data leakage prevention",
+                category: "8",
+                implementation: "Implement data leakage prevention controls for cloud-stored and processed data.",
+                aws: "AWS Macie data loss prevention, AWS CloudTrail data access monitoring, AWS VPC Flow Logs",
+                azure: "Azure Information Protection DLP, Azure Storage access monitoring, Azure Network Security Groups",
+                evidence: "DLP policies, data leakage detection logs, access monitoring reports, policy violation incidents"
+            },
+            {
+                id: "8.13",
+                title: "Information backup",
+                category: "8",
+                implementation: "Implement comprehensive backup strategies for cloud-stored information and configurations.",
+                aws: "AWS Backup centralized backup, AWS S3 cross-region replication, AWS RDS automated backups",
+                azure: "Azure Backup, Azure Storage geo-replication, Azure SQL Database automated backups",
+                evidence: "Backup procedures, backup verification tests, recovery time objectives, backup storage reports"
+            },
+            {
+                id: "8.14",
+                title: "Redundancy of information processing facilities",
+                category: "8",
+                implementation: "Implement redundancy for cloud information processing using multiple availability zones and regions.",
+                aws: "AWS Multi-AZ deployments, AWS Auto Scaling groups, AWS Route 53 health checks",
+                azure: "Azure availability zones, Azure Virtual Machine Scale Sets, Azure Traffic Manager",
+                evidence: "Redundancy configurations, failover test results, availability measurements, disaster recovery procedures"
+            },
+            {
+                id: "8.15",
+                title: "Logging",
+                category: "8",
+                implementation: "Implement comprehensive logging for cloud resources and security events.",
+                aws: "AWS CloudTrail logging, AWS VPC Flow Logs, AWS Config configuration history",
+                azure: "Azure Activity Log, Azure Monitor logs, Azure Security Center logging",
+                evidence: "Logging policies, log retention configurations, log analysis reports, audit trail completeness"
+            },
+            {
+                id: "8.16",
+                title: "Monitoring activities",
+                category: "8",
+                implementation: "Continuously monitor cloud activities and security events for anomalies and threats.",
+                aws: "AWS CloudWatch monitoring, AWS GuardDuty threat detection, AWS Security Hub centralized monitoring",
+                azure: "Azure Monitor, Azure Security Center continuous monitoring, Azure Sentinel threat detection",
+                evidence: "Monitoring configurations, security event dashboards, anomaly detection reports, threat intelligence feeds"
+            },
+            {
+                id: "8.17",
+                title: "Clock synchronization",
+                category: "8",
+                implementation: "Ensure accurate clock synchronization across cloud resources for logging and security.",
+                aws: "AWS EC2 NTP configuration, AWS CloudWatch timestamp accuracy, AWS Systems Manager time sync",
+                azure: "Azure VM NTP configuration, Azure Monitor timestamp accuracy, Azure time synchronization",
+                evidence: "Time synchronization policies, NTP configuration verification, timestamp accuracy reports, time drift monitoring"
+            },
+            {
+                id: "8.18",
+                title: "Use of system utilities",
+                category: "8",
+                implementation: "Control and monitor the use of system utilities in cloud environments.",
+                aws: "AWS Systems Manager Session Manager, AWS CloudTrail utility usage, AWS Config system changes",
+                azure: "Azure Bastion secure access, Azure Activity Log utility usage, Azure Policy system restrictions",
+                evidence: "System utility policies, utility usage logs, privileged command execution, system change records"
+            },
+            {
+                id: "8.19",
+                title: "Installation of software on operational systems",
+                category: "8",
+                implementation: "Control software installation on cloud systems through approved processes and automation.",
+                aws: "AWS Systems Manager Patch Manager, AWS Service Catalog software distribution, AWS CodeDeploy",
+                azure: "Azure Update Management, Azure Automation software deployment, Azure DevOps release management",
+                evidence: "Software installation policies, approved software lists, installation logs, change management records"
+            },
+            {
+                id: "8.20",
+                title: "Networks security management",
+                category: "8",
+                implementation: "Implement comprehensive network security management for cloud environments.",
+                aws: "AWS VPC security groups, AWS Network ACLs, AWS WAF protection, AWS Shield DDoS protection",
+                azure: "Azure Network Security Groups, Azure Firewall, Azure Application Gateway WAF, Azure DDoS Protection",
+                evidence: "Network security policies, firewall rule configurations, network access logs, security group audits"
+            },
+            {
+                id: "8.21",
+                title: "Security of network services",
+                category: "8",
+                implementation: "Secure network services used within cloud environments and hybrid connections.",
+                aws: "AWS Direct Connect security, AWS VPN connections, AWS PrivateLink service endpoints",
+                azure: "Azure ExpressRoute security, Azure VPN Gateway, Azure Private Link service endpoints",
+                evidence: "Network service security configurations, connection security logs, service endpoint policies, network monitoring"
+            },
+            {
+                id: "8.22",
+                title: "Segregation of networks",
+                category: "8",
+                implementation: "Implement network segregation in cloud environments using VPCs, subnets, and security groups.",
+                aws: "AWS VPC network isolation, AWS subnets segmentation, AWS Transit Gateway routing",
+                azure: "Azure Virtual Network isolation, Azure subnet segmentation, Azure Virtual WAN routing",
+                evidence: "Network segmentation diagrams, subnet configurations, routing table audits, network isolation tests"
+            },
+            {
+                id: "8.23",
+                title: "Web filtering",
+                category: "8",
+                implementation: "Implement web filtering for cloud-based resources and user access.",
+                aws: "AWS WAF web filtering, AWS CloudFront content filtering, AWS Route 53 DNS filtering",
+                azure: "Azure Application Gateway WAF, Azure Front Door content filtering, Azure DNS filtering",
+                evidence: "Web filtering policies, blocked content logs, filtering rule configurations, bypass request records"
+            },
+            {
+                id: "8.24",
+                title: "Use of cryptography",
+                category: "8",
+                implementation: "Implement appropriate cryptography for cloud data protection and secure communications.",
+                aws: "AWS KMS encryption, AWS CloudHSM, AWS Certificate Manager, AWS S3 encryption",
+                azure: "Azure Key Vault, Azure Dedicated HSM, Azure Certificate Manager, Azure Storage encryption",
+                evidence: "Cryptography policies, encryption key management, certificate lifecycle management, encryption usage reports"
+            },
+            {
+                id: "8.25",
+                title: "Secure system engineering principles",
+                category: "8",
+                implementation: "Apply secure system engineering principles to cloud architecture and deployment.",
+                aws: "AWS Well-Architected Framework, AWS Security Pillar, AWS Landing Zone security design",
+                azure: "Azure Well-Architected Framework, Azure Security Benchmark, Azure Landing Zones security design",
+                evidence: "Security architecture documents, Well-Architected reviews, security design patterns, architecture compliance reports"
+            },
+            {
+                id: "8.26",
+                title: "Application security requirements",
+                category: "8",
+                implementation: "Implement application security requirements for cloud-hosted applications.",
+                aws: "AWS CodeGuru security reviews, AWS Inspector application assessment, AWS WAF application protection",
+                azure: "Azure Security Center application security, Azure Application Security Groups, Azure WAF protection",
+                evidence: "Application security requirements, security testing reports, code review results, vulnerability assessment reports"
+            },
+            {
+                id: "8.27",
+                title: "Secure system architecture and engineering principles",
+                category: "8",
+                implementation: "Apply secure architecture principles to cloud system design and implementation.",
+                aws: "AWS Architecture Center security patterns, AWS Security Reference Architecture, AWS Control Tower",
+                azure: "Azure Architecture Center security patterns, Azure Security Reference Architecture, Azure Blueprints",
+                evidence: "Security architecture documentation, architecture review records, security pattern implementation, compliance verification"
+            },
+            {
+                id: "8.28",
+                title: "Secure coding",
+                category: "8",
+                implementation: "Implement secure coding practices for cloud applications and infrastructure as code.",
+                aws: "AWS CodeGuru code reviews, AWS CodeBuild security scanning, AWS CodeCommit security hooks",
+                azure: "Azure DevOps security scanning, Azure Repos security policies, Azure Security Center code recommendations",
+                evidence: "Secure coding standards, code review reports, security scan results, developer training records"
+            },
+            {
+                id: "8.29",
+                title: "Security testing in development and acceptance",
+                category: "8",
+                implementation: "Integrate security testing throughout cloud application development and deployment pipelines.",
+                aws: "AWS CodePipeline security testing, AWS Lambda security scanning, AWS X-Ray security analysis",
+                azure: "Azure DevOps security testing, Azure Functions security scanning, Azure Application Insights security monitoring",
+                evidence: "Security testing procedures, automated scan results, penetration testing reports, security gate compliance"
+            },
+            {
+                id: "8.30",
+                title: "Outsourced development",
+                category: "8",
+                implementation: "Secure outsourced development for cloud applications and infrastructure.",
+                aws: "AWS CodeCommit access controls, AWS CodeBuild environment isolation, AWS Service Catalog templates",
+                azure: "Azure DevOps access controls, Azure Repos branch policies, Azure Resource Manager template security",
+                evidence: "Outsourced development contracts, access control records, code quality reports, security requirement compliance"
+            },
+            {
+                id: "8.31",
+                title: "Separation of development, testing and operational environments",
+                category: "8",
+                implementation: "Maintain separation between development, testing, and production cloud environments.",
+                aws: "AWS Organizations account separation, AWS CodePipeline environment promotion, AWS Systems Manager parameter isolation",
+                azure: "Azure subscription separation, Azure DevOps environment gates, Azure Key Vault environment isolation",
+                evidence: "Environment separation procedures, account/subscription structure, deployment pipeline configurations, data isolation verification"
+            },
+            {
+                id: "8.32",
+                title: "Change management",
+                category: "8",
+                implementation: "Implement comprehensive change management for cloud infrastructure and applications.",
+                aws: "AWS Config change tracking, AWS CloudFormation stack management, AWS Systems Manager change calendar",
+                azure: "Azure Resource Manager deployment tracking, Azure Policy change management, Azure Automation change tracking",
+                evidence: "Change management procedures, change approval records, deployment logs, rollback procedures"
+            },
+            {
+                id: "8.33",
+                title: "Test information",
+                category: "8",
+                implementation: "Secure test information used in cloud development and testing environments.",
+                aws: "AWS Database Migration Service test data, AWS Glue data masking, AWS S3 test data isolation",
+                azure: "Azure Database Migration Service test data, Azure Data Factory data masking, Azure Storage test data isolation",
+                evidence: "Test data management procedures, data masking configurations, test environment isolation, data sanitization logs"
+            },
+            {
+                id: "8.34",
+                title: "Protection of information systems during audit testing",
+                category: "8",
+                implementation: "Protect cloud information systems during audit testing and security assessments.",
+                aws: "AWS Config compliance rules, AWS Security Hub audit findings, AWS CloudTrail audit logging",
+                azure: "Azure Policy compliance assessment, Azure Security Center audit reports, Azure Monitor audit logging",
+                evidence: "Audit protection procedures, system isolation during audits, audit access logs, impact assessment reports"
+            }
+        ];
+
+        let filteredControls = controls;
+
+        function renderControls() {
+            const grid = document.getElementById('controlsGrid');
+            grid.innerHTML = '';
+            
+            filteredControls.forEach(control => {
+                const card = document.createElement('div');
+                card.className = 'control-card';
+                card.innerHTML = `
+                    <div class="control-header">
+                        <div class="control-id">${control.id}</div>
+                    </div>
+                    <div class="control-title">${control.title}</div>
+                    
+                    <div class="implementation-guide">
+                        <h4>📋 Implementation Guidance</h4>
+                        <div>${control.implementation}</div>
+                    </div>
+                    
+                    <div class="cloud-mappings">
+                        <div class="cloud-section aws-section">
+                            <h4>🔶 AWS Services</h4>
+                            <div class="service-list">${control.aws}</div>
+                        </div>
+                        <div class="cloud-section azure-section">
+                            <h4>🔷 Azure Services</h4>
+                            <div class="service-list">${control.azure}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="audit-evidence">
+                        <h4>📊 Audit Evidence Examples</h4>
+                        <div class="evidence-list">${control.evidence}</div>
+                    </div>
+                    
+                    <div class="compliance-status">
+                        <select id="status-${control.id}">
+                            <option value="">Select Status</option>
+                            <option value="implemented">Implemented</option>
+                            <option value="partial">Partially Implemented</option>
+                            <option value="not-implemented">Not Implemented</option>
+                            <option value="not-applicable">Not Applicable</option>
+                        </select>
+                        <input type="text" id="comments-${control.id}" placeholder="Comments...">
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterControls() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            filteredControls = controls.filter(control => {
+                const matchesSearch = control.title.toLowerCase().includes(searchTerm) || 
+                                    control.implementation.toLowerCase().includes(searchTerm) ||
+                                    control.id.toLowerCase().includes(searchTerm);
+                const matchesCategory = !categoryFilter || control.category === categoryFilter;
+                const matchesStatus = !statusFilter || document.getElementById(`status-${control.id}`)?.value === statusFilter;
+                
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+            
+            renderControls();
+        }
+
+        function exportToExcel() {
+            const exportData = controls.map(control => ({
+                'Control ID': control.id,
+                'Control Title': control.title,
+                'Category': control.category,
+                'Implementation Guidance': control.implementation,
+                'AWS Services': control.aws,
+                'Azure Services': control.azure,
+                'Audit Evidence': control.evidence,
+                'Compliance Status': document.getElementById(`status-${control.id}`)?.value || '',
+                'Comments': document.getElementById(`comments-${control.id}`)?.value || ''
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'ISO27002-2022 Controls');
+            
+            // Auto-size columns
+            const colWidths = [
+                { wch: 12 }, // Control ID
+                { wch: 40 }, // Control Title
+                { wch: 10 }, // Category
+                { wch: 60 }, // Implementation Guidance
+                { wch: 60 }, // AWS Services
+                { wch: 60 }, // Azure Services
+                { wch: 60 }, // Audit Evidence
+                { wch: 20 }, // Compliance Status
+                { wch: 40 }  // Comments
+            ];
+            ws['!cols'] = colWidths;
+            
+            XLSX.writeFile(wb, 'ISO27002-2022_Cloud_Controls_Mapping.xlsx');
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', filterControls);
+        document.getElementById('categoryFilter').addEventListener('change', filterControls);
+        document.getElementById('statusFilter').addEventListener('change', filterControls);
+
+        // Initial render
+        renderControls();
+    </script>
+</body>
+</html>
