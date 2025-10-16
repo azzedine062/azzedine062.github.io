@@ -2,7 +2,7 @@
 
 Provides detailed implementation guidance and best practices for each control to help organizations apply them effectively.
 
-![Cloud Compliance Dashboard] (https://github.com/azzedine062/azzedine062.github.io/blob/main/Cloud%20Security%20Controls%20Mapping.png)
+![Cloud Compliance Dashboard](https://github.com/azzedine062/azzedine062.github.io/blob/main/Cloud%20Security%20Controls%20Mapping.png)
 
 I've created a simple dashboard that maps security standards and frameworks to specific cloud configurations and resources across cloud platforms like AWS and Azure. This tool is designed to bridge the gap between traditional information security controls and modern cloud environments.
 
@@ -46,4 +46,5 @@ This project is open source and built to help the security and cloud community b
 Feel free to use, adapt, or improve it for your own organization, audits, or learning.
 
 Parts of this project were created with the help of AI tools (e.g., Claude.ai, ChatGPT).
+
 
