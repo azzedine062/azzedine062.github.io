@@ -1,0 +1,113 @@
+// data/aws-controls.js - AWS Cloud Controls Mapping
+
+/**
+ * AWS Cloud Services Mapping for ISO 27002:2022 Controls
+ * This file contains ONLY AWS mappings
+ */
+const AWS_CONTROLS_MAPPING = {
+    "5.1": "AWS Config, AWS Organizations, AWS Control Tower",
+    "5.2": "AWS IAM roles and policies, AWS Organizations",
+    "5.3": "AWS IAM least privilege, Organizations SCPs",
+    "5.4": "AWS Control Tower dashboards, Security Hub, AWS Budgets",
+    "5.5": "AWS Support cases, incident response procedures",
+    "5.6": "AWS security bulletins, re:Invent sessions, AWS Trusted Advisor",
+    "5.7": "AWS GuardDuty, Security Hub, Amazon Inspector",
+    "5.8": "AWS Service Catalog, CodePipeline gates, CloudFormation Guard",
+    "5.9": "AWS Config inventory, AWS Systems Manager",
+    "5.10": "AWS Organizations policies, AWS Config rules, AWS Budgets",
+    "5.11": "AWS IAM key rotation, AWS Secrets Manager, AWS KMS",
+    "5.12": "AWS S3 policies, AWS KMS, Amazon Macie",
+    "5.13": "AWS Resource Tags, S3 metadata",
+    "5.14": "AWS DataSync, AWS Direct Connect, AWS VPN",
+    "5.15": "AWS IAM policies, AWS IAM Identity Center (SSO), AWS Organizations",
+    "5.16": "AWS IAM Identity Center, AWS Directory Service",
+    "5.17": "AWS Secrets Manager, Parameter Store, AWS KMS",
+    "5.18": "AWS IAM Access Analyzer, AWS CloudTrail",
+    "5.19": "AWS Marketplace assessments, AWS Partner competencies",
+    "5.20": "AWS Customer Agreement, shared responsibility model",
+    "5.21": "AWS Supply Chain Security, AWS Systems Manager Patch Manager",
+    "5.22": "AWS CloudWatch, AWS Config compliance, Security Hub insights",
+    "5.23": "AWS Well-Architected Tool, Landing Zone Accelerator",
+    "5.24": "AWS Security Hub incident response, AWS Systems Manager Automation",
+    "5.25": "AWS GuardDuty analysis, AWS Security Hub findings",
+    "5.26": "AWS Incident Response Plan, AWS Systems Manager Runbooks",
+    "5.27": "AWS Security Hub trend analysis, CloudWatch dashboards",
+    "5.28": "AWS CloudTrail, AWS Config history, VPC Flow Logs",
+    "5.29": "AWS Backup, Multi-AZ deployments, AWS Elastic Disaster Recovery",
+    "5.30": "AWS Multi-AZ deployments, cross-region replication",
+    "5.31": "AWS Compliance programs, AWS Artifact",
+    "5.32": "AWS data ownership policies, AWS KMS encryption",
+    "5.33": "S3 Object Lock, Amazon S3 Glacier Vault Lock",
+    "5.34": "Amazon Macie PII detection, AWS KMS encryption",
+    "5.35": "AWS Well-Architected reviews, third-party assessments, AWS Audit Manager",
+    "5.36": "AWS Config compliance monitoring",
+    "5.37": "AWS Systems Manager Documents (SSM documents)",
+    "6.1": "AWS IAM user lifecycle, IAM Identity Center provisioning",
+    "6.2": "AWS access responsibilities documentation, acceptable use policies",
+    "6.3": "AWS Training and Certification, security best practices training",
+    "6.4": "AWS CloudTrail violation detection, IAM policy conditions",
+    "6.5": "AWS IAM user deactivation, SSO management",
+    "6.6": "AWS data confidentiality configuration using IAM and KMS",
+    "6.7": "AWS Client VPN, Amazon WorkSpaces, Session Manager",
+    "6.8": "AWS Security Hub event reporting and alerts",
+    "7.1": "AWS data center physical security, compliance certifications",
+    "7.2": "AWS physical access controls, badge management",
+    "7.3": "AWS Availability Zones, HVAC and power redundancy",
+    "7.4": "AWS Service Health Dashboard, planned maintenance notifications",
+    "7.5": "AWS data destruction via S3 Object Expiration, EBS wipe",
+    "7.6": "Amazon WorkSpaces screen lock, session timeout policies",
+    "7.7": "AWS IoT Device Defender, edge device protection",
+    "7.8": "AWS Systems Manager Patch Manager",
+    "7.9": "AWS IoT Core device deregistration, lifecycle policies",
+    "7.10": "AWS Storage Gateway encryption, Amazon EBS encryption",
+    "7.11": "AWS Direct Connect with VPN backup for redundancy",
+    "7.12": "AWS Direct Connect facility physical security",
+    "7.13": "AWS Firewall Manager, network ACL and security group maintenance",
+    "7.14": "AWS IAM credential revocation, AWS Certificate Manager",
+    "8.1": "AWS Device Farm, Amazon AppStream 2.0, WorkSpaces",
+    "8.2": "AWS IAM privileged roles, IAM Identity Center roles",
+    "8.3": "AWS IAM policies, Amazon S3 bucket policies, Amazon Macie",
+    "8.4": "AWS CodeCommit access controls, CodeBuild isolation",
+    "8.5": "AWS IAM MFA, SSO federation, WebAuthn (FIDO2) via IAM Identity Center",
+    "8.6": "AWS Auto Scaling, Amazon CloudWatch alarms",
+    "8.7": "AWS GuardDuty, Amazon Inspector, malware protection",
+    "8.8": "Amazon Inspector patch management, Security Hub integration",
+    "8.9": "AWS Config rule management, CloudFormation drift detection",
+    "8.10": "Amazon S3 object deletion controls, EBS secure wipe, KMS deletion",
+    "8.11": "AWS Glue data masking, Amazon RDS parameter configurations",
+    "8.12": "Amazon Macie DLP, AWS CloudTrail monitoring",
+    "8.13": "AWS Backup, S3 cross-region replication, RDS automated backups",
+    "8.14": "Multi-AZ, Auto Scaling, Route 53 health checks",
+    "8.15": "AWS CloudTrail, VPC Flow Logs, AWS Config",
+    "8.16": "Amazon CloudWatch, GuardDuty, AWS Security Hub",
+    "8.17": "Amazon EC2 NTP configuration, CloudWatch timestamps",
+    "8.18": "AWS Systems Manager Session Manager, CloudTrail usage logs",
+    "8.19": "AWS Systems Manager Patch Manager, AWS Service Catalog",
+    "8.20": "VPC security groups, AWS WAF, AWS Shield",
+    "8.21": "AWS Direct Connect, VPN, AWS PrivateLink",
+    "8.22": "VPC isolation, subnet segregation, AWS Transit Gateway",
+    "8.23": "AWS WAF filtering, Amazon CloudFront, Route 53 DNS filtering",
+    "8.24": "AWS KMS, AWS CloudHSM, AWS Certificate Manager",
+    "8.25": "AWS KMS key validation, key rotation, CloudTrail audit logs",
+    "8.26": "AWS tagging policies, S3 metadata classification, Amazon Macie",
+    "8.27": "AWS Architecture Center, Well-Architected Security Pillar",
+    "8.28": "AWS CodeGuru reviews, CodeBuild security scans",
+    "8.29": "AWS CodePipeline integration tests, Lambda code scanning",
+    "8.30": "AWS CodeCommit access control, CodeBuild isolation",
+    "8.31": "AWS Organizations for dev/prod separation, CodePipeline promotion stages",
+    "8.32": "AWS Config resource tracking, CloudFormation management",
+    "8.33": "AWS DMS test data, AWS Glue data masking",
+    "8.34": "AWS Config compliance checks, Security Hub audit findings"
+};
+
+
+// Export for browser usage
+if (typeof window !== 'undefined') {
+    window.AWS_CONTROLS_MAPPING = AWS_CONTROLS_MAPPING;
+    console.log('✅ AWS controls loaded:', Object.keys(AWS_CONTROLS_MAPPING).length, 'controls');
+}
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { AWS_CONTROLS_MAPPING };
+}
