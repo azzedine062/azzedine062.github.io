@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSA Cloud Controls Matrix (CCM) v4 - Azure Mapping</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional CCM-specific styles */
+        .ccm-domain-header {
+            background: #f8f9fa;
+            border-left: 4px solid #0078d4;
+            color: #2c3e50;
+            padding: 0.75rem 1.25rem;
+            border-radius: 4px;
+            margin: 2.5rem 0 1rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .ccm-domain-header:hover {
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 120, 212, 0.1);
+            border-left-width: 5px;
+        }
+
+        .ccm-domain-description {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 0.35rem;
+            font-weight: 400;
+        }
+
+        .control-applicability {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .applicability-both {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+
+        .applicability-csp {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            border: 1px solid #ce93d8;
+        }
+
+        .applicability-csc {
+            background: #e8f5e9;
+            color: #388e3c;
+            border: 1px solid #81c784;
+        }
+
+        .control-specification {
+            background: #f8f9fa;
+            border-left: 3px solid #0078d4;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .control-specification h4 {
+            margin: 0 0 0.5rem 0;
+            color: #0078d4;
+            font-size: 0.9rem;
+        }
+
+        .ccm-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .ccm-stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .ccm-stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0078d4;
+        }
+
+        .ccm-stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .framework-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+            color: white;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        /* Compliance Status Styles */
+        .compliance-status-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .compliance-status-section h4 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .compliance-status-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .status-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            color: #666;
+        }
+
+        .status-btn:hover {
+            border-color: #0078d4;
+            background: #f8f9fa;
+        }
+
+        .status-btn.active {
+            font-weight: 600;
+            color: white;
+        }
+
+        .status-implemented.active {
+            background: #28a745;
+            border-color: #28a745;
+        }
+
+        .status-partial.active {
+            background: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+
+        .status-not-implemented.active {
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .status-not-applicable.active {
+            background: #6c757d;
+            border-color: #6c757d;
+        }
+
+        /* Auditor Comment Styles */
+        .auditor-comment-section {
+            margin-top: 1rem;
+        }
+
+        .comment-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .auditor-comment-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+        }
+
+        .auditor-comment-textarea:focus {
+            outline: none;
+            border-color: #0078d4;
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+        }
+
+        .auditor-comment-textarea::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="framework-badge">☁️ CSA CCM v4</div>
+            <h1>Cloud Controls Matrix (CCM) v4</h1>
+            <p style="color: #666; margin-top: 1rem;">
+                The Cloud Security Alliance Cloud Controls Matrix is the industry standard for cloud security assurance and compliance.
+            </p>
+           <p>© This tool references the Cloud Security Alliance (CSA) Cloud Controls Matrix (CCM) v4 for educational and non-commercial purposes.</p>
+           <p>Source: https://cloudsecurityalliance.org/artifacts/cloud-controls-matrix-v4/</p> 
+
+
+            <div class="app-status" id="appStatus">
+                <span class="status-indicator" id="statusIndicator">🔄</span>
+                <span class="status-text" id="statusText">Initializing...</span>
+            </div>
+        </header>
+
+        <!-- CCM Statistics -->
+        <section class="ccm-stats">
+            <div class="ccm-stat-card">
+                <div class="ccm-stat-number" id="totalControls">0</div>
+                <div class="ccm-stat-label">Total Controls</div>
+            </div>
+            <div class="ccm-stat-card">
+                <div class="ccm-stat-number">17</div>
+                <div class="ccm-stat-label">Control Domains</div>
+            </div>
+            <div class="ccm-stat-card">
+                <div class="ccm-stat-number" id="azureMappings">0</div>
+                <div class="ccm-stat-label">Azure Mappings</div>
+            </div>
+        </section>
+
+        <!-- Cloud Provider Selection -->
+        <section class="cloud-provider-selection">
+            <h3>🌥️ Cloud Provider</h3>
+            <p class="provider-description">Currently showing Azure mappings. AWS and GCP coming soon.</p>
+            
+            <div class="provider-checkboxes">
+                <label class="provider-checkbox">
+                    <input type="checkbox" id="azure-provider" checked disabled>
+                    <span class="checkmark azure-checkmark">🔷 Azure (Active)</span>
+                </label>
+                <label class="provider-checkbox">
+                    <input type="checkbox" id="aws-provider" disabled>
+                    <span class="checkmark aws-checkmark">🔶 AWS (Coming Soon)</span>
+                </label>
+                <label class="provider-checkbox">
+                    <input type="checkbox" id="gcp-provider" disabled>
+                    <span class="checkmark gcp-checkmark">🔵 GCP (Coming Soon)</span>
+                </label>
+            </div>
+        </section>
+        
+        <!-- Filter Section -->
+        <section class="filter-section">
+            <h3>🔍 Filter & Export Controls</h3>
+            <div class="filter-controls">
+                <input type="text" id="searchInput" placeholder="Search CCM controls...">
+                <select id="domainFilter">
+                    <option value="">All Domains</option>
+                    <option value="A&A">A&A - Audit and Assurance</option>
+                    <option value="AIS">AIS - Application & Interface Security</option>
+                    <option value="BCR">BCR - Business Continuity & DR</option>
+                    <option value="CEK">CEK - Cryptography & Key Management</option>
+                    <option value="CCC">CCC - Change Control & Configuration</option>
+                    <option value="DSP">DSP - Data Security & Privacy</option>
+                    <option value="DCS">DCS - Datacenter Security</option>
+                    <option value="GRC">GRC - Governance, Risk & Compliance</option>
+                    <option value="HRS">HRS - Human Resources Security</option>
+                    <option value="IAM">IAM - Identity & Access Management</option>
+                    <option value="IPY">IPY - Interoperability & Portability</option>
+                    <option value="IVS">IVS - Infrastructure & Virtualization</option>
+                    <option value="LOG">LOG - Logging & Monitoring</option>
+                    <option value="SEF">SEF - Security Incident Management</option>
+                    <option value="STA">STA - Supply Chain Management</option>
+                    <option value="TVM">TVM - Threat & Vulnerability Management</option>
+                    <option value="UEM">UEM - Universal Endpoint Management</option>
+                </select>
+                <button class="export-btn" onclick="exportToExcel()">📊 Export to Excel</button>
+                <button class="reset-btn" onclick="resetFilters()">🔄 Reset</button>
+                <a href="index.html" class="action-btn secondary-btn">⬅️ Back to Frameworks</a>
+            </div>
+        </section>
+        
+        <!-- Controls Container -->
+        <section class="controls-container">
+            <div class="controls-grid" id="controlsGrid">
+                <!-- Controls will be loaded here -->
+            </div>
+        </section>
+        
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>Loading CCM controls...</p>
+        </div>
+    </div>
+
+    <!-- XLSX Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Data Files -->
+    <script src="data/ccm-base-controls.js"></script>
+    <script src="data/azure-ccm-controls.js"></script>
+    
+    <!-- Application Logic -->
+    <script>
+        console.log('🚀 Starting CCM application...');
+
+        class CCMApp {
+            constructor() {
+                this.allControls = [];
+                this.currentControls = [];
+                this.currentDomain = '';
+                this.complianceStatus = new Map();
+                this.comments = new Map();
+                this.filters = {
+                    search: '',
+                    domain: '',
+                };
+                this.loadComplianceStatus();
+                this.loadComments();
+            }
+
+            init() {
+                console.log('📋 Initializing CCM App...');
+                
+                // Check if controls are loaded
+                if (!window.CCM_BASE_CONTROLS || !window.AZURE_CCM_CONTROLS_MAPPING) {
+                    console.error('❌ Controls not loaded!');
+                    this.showError('CCM data not loaded. Check console for details.');
+                    return;
+                }
+
+                // Combine controls with Azure mappings
+                this.allControls = window.CCM_BASE_CONTROLS.map(control => ({
+                    ...control,
+                    azureMapping: window.AZURE_CCM_CONTROLS_MAPPING[control.id] || 'N/A'
+                }));
+
+                console.log('✅ Loaded', this.allControls.length, 'CCM controls');
+
+                // Update statistics
+                document.getElementById('totalControls').textContent = this.allControls.length;
+                document.getElementById('azureMappings').textContent = 
+                    Object.keys(window.AZURE_CCM_CONTROLS_MAPPING).length;
+
+                // Bind events
+                this.bindEvents();
+
+                // Initial render
+                this.applyFilters();
+
+                // Update status
+                document.getElementById('statusIndicator').textContent = '✅';
+                document.getElementById('statusText').textContent = 
+                    `Ready - ${this.allControls.length} controls loaded`;
+                
+                console.log('✅ CCM App initialized successfully!');
+            }
+
+            bindEvents() {
+                // Search input
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.filters.search = e.target.value.toLowerCase();
+                    this.applyFilters();
+                });
+
+                // Domain filter
+                document.getElementById('domainFilter').addEventListener('change', (e) => {
+                    this.filters.domain = e.target.value;
+                    this.applyFilters();
+                });
+            }
+
+            applyFilters() {
+                let filtered = this.allControls;
+
+                // Apply search filter
+                if (this.filters.search) {
+                    filtered = filtered.filter(control =>
+                        control.id.toLowerCase().includes(this.filters.search) ||
+                        control.title.toLowerCase().includes(this.filters.search) ||
+                        control.description.toLowerCase().includes(this.filters.search) ||
+                        control.domainName.toLowerCase().includes(this.filters.search)
+                    );
+                }
+
+            // Apply domain filter
+            if (this.filters.domain) {
+                filtered = filtered.filter(control => control.domain === this.filters.domain);
+            }
+
+            this.currentControls = filtered;
+            this.renderControls();
+            }
+
+            renderControls() {
+                const grid = document.getElementById('controlsGrid');
+                grid.innerHTML = '';
+
+                if (this.currentControls.length === 0) {
+                    grid.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No controls match your filters.</p>';
+                    return;
+                }
+
+                // Simply render all controls without grouping by domain
+                this.currentControls.forEach(control => {
+                    grid.appendChild(this.createControlCard(control));
+                });
+            }
+
+            createControlCard(control) {
+                const card = document.createElement('div');
+                card.className = 'control-card';
+                
+                const applicabilityClass = control.applicability.includes('Both') ? 'applicability-both' :
+                                          control.applicability.includes('CSP') ? 'applicability-csp' :
+                                          'applicability-csc';
+                
+                card.innerHTML = `
+                    <div class="control-header">
+                        <div class="control-id">${this.escapeHtml(control.id)}</div>
+                        <span class="control-applicability ${applicabilityClass}">
+                            ${this.escapeHtml(control.applicability)}
+                        </span>
+                    </div>
+                    <div class="control-title">${this.escapeHtml(control.title)}</div>
+                    
+                    <div style="margin: 1rem 0;">
+                        <strong style="color: #333;">Description:</strong>
+                        <p style="color: #666; margin-top: 0.5rem;">${this.escapeHtml(control.description)}</p>
+                    </div>
+
+                    <div class="control-specification">
+                        <h4>📋 Control Specification</h4>
+                        <div>${this.escapeHtml(control.controlSpecification)}</div>
+                    </div>
+                    
+                    <div class="implementation-guide" style="background: #e3f2fd; border-left-color: #0078d4;">
+                        <h4 style="color: #0078d4;">🔷 Azure Implementation</h4>
+                        <div>${this.escapeHtml(control.azureMapping)}</div>
+                    </div>
+
+                    <div class="compliance-status-section">
+                        <h4>✓ Compliance Status</h4>
+                        <div class="compliance-status-buttons">
+                            <button class="status-btn status-implemented ${this.getComplianceStatus(control.id) === 'implemented' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${control.id}', 'implemented')">
+                                Implemented
+                            </button>
+                            <button class="status-btn status-partial ${this.getComplianceStatus(control.id) === 'partial' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${control.id}', 'partial')">
+                                Partial
+                            </button>
+                            <button class="status-btn status-not-implemented ${this.getComplianceStatus(control.id) === 'not-implemented' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${control.id}', 'not-implemented')">
+                                Not Implemented
+                            </button>
+                            <button class="status-btn status-not-applicable ${this.getComplianceStatus(control.id) === 'not-applicable' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${control.id}', 'not-applicable')">
+                                N/A
+                            </button>
+                        </div>
+                        
+                        <div class="auditor-comment-section">
+                            <label for="comment-${control.id}" class="comment-label">
+                                💬 Auditor Comments / Notes:
+                            </label>
+                            <textarea 
+                                id="comment-${control.id}" 
+                                class="auditor-comment-textarea"
+                                placeholder="Add implementation notes, evidence references, remediation plans, or any other relevant comments..."
+                                onblur="window.app.saveComment('${control.id}', this.value)"
+                            >${this.escapeHtml(this.getComment(control.id))}</textarea>
+                        </div>
+                    </div>
+                `;
+                
+                return card;
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            showError(message) {
+                const grid = document.getElementById('controlsGrid');
+                grid.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #d32f2f;">
+                        <h3>⚠️ Error</h3>
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
+
+            loadComplianceStatus() {
+                const saved = localStorage.getItem('ccm_compliance_status');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.complianceStatus = new Map(Object.entries(data));
+                    } catch (e) {
+                        console.error('Failed to load compliance status:', e);
+                    }
+                }
+            }
+
+            saveComplianceStatus() {
+                const data = Object.fromEntries(this.complianceStatus);
+                localStorage.setItem('ccm_compliance_status', JSON.stringify(data));
+            }
+
+            setComplianceStatus(controlId, status) {
+                this.complianceStatus.set(controlId, status);
+                this.saveComplianceStatus();
+                this.renderControls();
+            }
+
+            getComplianceStatus(controlId) {
+                return this.complianceStatus.get(controlId) || '';
+            }
+
+            loadComments() {
+                const saved = localStorage.getItem('ccm_auditor_comments');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.comments = new Map(Object.entries(data));
+                    } catch (e) {
+                        console.error('Failed to load comments:', e);
+                    }
+                }
+            }
+
+            saveComment(controlId, comment) {
+                this.comments.set(controlId, comment);
+                const data = Object.fromEntries(this.comments);
+                localStorage.setItem('ccm_auditor_comments', JSON.stringify(data));
+            }
+
+            getComment(controlId) {
+                return this.comments.get(controlId) || '';
+            }
+        }
+
+        // Export to Excel function
+        function exportToExcel() {
+            if (!window.XLSX) {
+                alert('Excel export library not loaded');
+                return;
+            }
+
+            const controls = window.app.currentControls;
+            const data = controls.map(c => ({
+                'Control ID': c.id,
+                'Domain': c.domain,
+                'Domain Name': c.domainName,
+                'Title': c.title,
+                'Description': c.description,
+                'Control Specification': c.controlSpecification,
+                'Applicability': c.applicability,
+                'Category': c.category,
+                'Azure Services': c.azureMapping,
+                'Compliance Status': window.app.getComplianceStatus(c.id) || 'Not Set',
+                'Auditor Comments': window.app.getComment(c.id) || ''
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'CCM Controls');
+
+            // Auto-size columns
+            const maxWidth = 50;
+            const wscols = [
+                { wch: 10 },  // Control ID
+                { wch: 8 },   // Domain
+                { wch: 30 },  // Domain Name
+                { wch: 40 },  // Title
+                { wch: maxWidth },  // Description
+                { wch: maxWidth },  // Control Specification
+                { wch: 20 },  // Applicability
+                { wch: 15 },  // Category
+                { wch: maxWidth },  // Azure Services
+                { wch: 20 },  // Compliance Status
+                { wch: maxWidth }   // Auditor Comments
+            ];
+            ws['!cols'] = wscols;
+
+            const timestamp = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `CSA_CCM_v4_Azure_Audit_Report_${timestamp}.xlsx`);
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('domainFilter').value = '';
+            window.app.filters = { search: '', domain: '' };
+            window.app.applyFilters();
+        }
+
+        // Initialize app when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Verify data is loaded
+                if (!window.CCM_BASE_CONTROLS || !window.AZURE_CCM_CONTROLS_MAPPING) {
+                    console.error('❌ Missing data files');
+                    alert('ERROR: CCM data files are not loading. Please check:\n\n1. ccm-base-controls.js exists\n2. azure-ccm-controls.js exists\n3. Check browser console (F12) for errors');
+                    return;
+                }
+                
+                window.app = new CCMApp();
+                window.app.init();
+            } catch (error) {
+                console.error('❌ Initialization error:', error);
+                alert('Initialization failed: ' + error.message);
+            }
+        });
+
+        console.log('💡 CCM application script loaded');
+    </script>
+</body>
+</html>

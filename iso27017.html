@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO/IEC 27017:2015 Cloud Security Checklist</title>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>☁️ ISO/IEC 27017:2015 Cloud Security Checklist</h1>
+            <div class="framework-badge">Cloud Security Code of Practice</div>
+            <h3 class="sub-title">Comprehensive checklist for cloud information security controls</h3>
+            <div class="app-status">
+                <span class="status-indicator" id="statusIndicator">🔄</span>
+                <span class="status-text" id="statusText">Loading...</span>
+            </div>
+        </header>
+
+        <!-- Progress Section -->
+        <section class="progress-bar-container">
+            <h3 style="margin-bottom: 15px;">📊 Implementation Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalControls">0</div>
+                    <div class="stat-label">Total Controls</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="implementedCount">0</div>
+                    <div class="stat-label">Implemented</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="remainingCount">0</div>
+                    <div class="stat-label">Remaining</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="progressPercent">0%</div>
+                    <div class="stat-label">Complete</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <section class="action-buttons">
+            <button class="action-btn primary-btn" onclick="exportToExcel()">📊 Export Checklist</button>
+            <button class="action-btn secondary-btn" onclick="checkAll()">✅ Check All</button>
+            <button class="action-btn secondary-btn" onclick="uncheckAll()">⬜ Uncheck All</button>
+            <button class="action-btn secondary-btn" onclick="resetProgress()">🔄 Reset Progress</button>
+            <a href="index.html" class="action-btn secondary-btn">⬅️ Back to Frameworks</a>
+        </section>
+
+        <!-- Filter Section -->
+        <section class="filter-section">
+            <h3>🔍 Filter Controls</h3>
+            <div class="filter-controls">
+                <input type="text" id="searchInput" placeholder="Search controls...">
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="organizational">Organizational</option>
+                    <option value="technical">Technical</option>
+                    <option value="operational">Operational</option>
+                </select>
+                <select id="typeFilter">
+                    <option value="">All Types</option>
+                    <option value="cloud-specific">Cloud-Specific Controls</option>
+                    <option value="enhanced">Enhanced ISO 27002 Controls</option>
+                </select>
+                <select id="appliesToFilter">
+                    <option value="">Applies To: All</option>
+                    <option value="provider">Cloud Provider</option>
+                    <option value="customer">Cloud Customer</option>
+                    <option value="both">Both</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Controls Container -->
+        <section class="controls-container">
+            <div class="controls-grid" id="controlsGrid">
+                <!-- Controls will be loaded here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Data File -->
+    <script src="data/iso27017-controls.js"></script>
+    
+    <!-- XLSX Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Application Logic -->
+    <script>
+        class ISO27017App {
+            constructor() {
+                this.allControls = [];
+                this.currentControls = [];
+                this.checkedItems = new Set();
+                this.filters = {
+                    search: '',
+                    category: '',
+                    type: '',
+                    appliesTo: ''
+                };
+                this.loadCheckedState();
+            }
+
+            init() {
+                if (!window.ISO27017_CONTROLS) {
+                    alert('Failed to load ISO 27017 controls data');
+                    return;
+                }
+
+                this.allControls = window.ISO27017_CONTROLS;
+                console.log('✅ Loaded', this.allControls.length, 'ISO 27017 controls');
+
+                this.bindEvents();
+                this.applyFilters();
+                this.updateProgress();
+
+                document.getElementById('statusIndicator').textContent = '✅';
+                document.getElementById('statusText').textContent = `Ready - ${this.allControls.length} controls loaded`;
+            }
+
+            bindEvents() {
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.filters.search = e.target.value;
+                    this.applyFilters();
+                });
+
+                document.getElementById('categoryFilter').addEventListener('change', (e) => {
+                    this.filters.category = e.target.value;
+                    this.applyFilters();
+                });
+
+                document.getElementById('typeFilter').addEventListener('change', (e) => {
+                    this.filters.type = e.target.value;
+                    this.applyFilters();
+                });
+
+                document.getElementById('appliesToFilter').addEventListener('change', (e) => {
+                    this.filters.appliesTo = e.target.value;
+                    this.applyFilters();
+                });
+
+                document.addEventListener('change', (e) => {
+                    if (e.target.matches('.checklist-checkbox')) {
+                        this.handleCheckboxChange(e.target);
+                    }
+                });
+            }
+
+            applyFilters() {
+                let filtered = [...this.allControls];
+
+                if (this.filters.search) {
+                    const term = this.filters.search.toLowerCase();
+                    filtered = filtered.filter(control =>
+                        control.id.toLowerCase().includes(term) ||
+                        control.title.toLowerCase().includes(term) ||
+                        control.description.toLowerCase().includes(term) ||
+                        control.implementation.toLowerCase().includes(term)
+                    );
+                }
+
+                if (this.filters.category) {
+                    filtered = filtered.filter(control => control.category === this.filters.category);
+                }
+
+                if (this.filters.type) {
+                    filtered = filtered.filter(control => control.type === this.filters.type);
+                }
+
+                if (this.filters.appliesTo) {
+                    filtered = filtered.filter(control => control.appliesTo === this.filters.appliesTo);
+                }
+
+                this.currentControls = filtered;
+                this.renderControls(filtered);
+            }
+
+            renderControls(controls) {
+                const grid = document.getElementById('controlsGrid');
+                grid.innerHTML = '';
+
+                controls.forEach(control => {
+                    const card = this.createControlCard(control);
+                    grid.appendChild(card);
+                });
+            }
+
+            createControlCard(control) {
+                const card = document.createElement('div');
+                card.className = 'control-card';
+
+                const isChecked = this.checkedItems.has(control.id);
+                const checkedClass = isChecked ? 'checked' : '';
+
+                const typeLabel = control.type === 'cloud-specific' ? '☁️ Cloud-Specific' : '📋 Enhanced ISO 27002';
+                const typeClass = control.type;
+
+                const appliesToIcon = control.appliesTo === 'provider' ? '🏢' : 
+                                     control.appliesTo === 'customer' ? '👤' : '🤝';
+                const appliesToLabel = control.appliesTo === 'provider' ? 'Cloud Provider' :
+                                      control.appliesTo === 'customer' ? 'Cloud Customer' : 'Both';
+
+                card.innerHTML = `
+                    <div class="control-header">
+                        <div class="control-id">${control.id}</div>
+                        <div class="control-header-badges">
+                            <span class="control-type-badge ${typeClass}">${typeLabel}</span>
+                            <span class="applies-to">${appliesToIcon} ${appliesToLabel}</span>
+                        </div>
+                    </div>
+                    <div class="control-title">${control.title}</div>
+
+                    <div class="checklist-item ${checkedClass}">
+                        <input type="checkbox" 
+                               class="checklist-checkbox" 
+                               data-control-id="${control.id}"
+                               ${isChecked ? 'checked' : ''}>
+                        <div class="checklist-content">
+                            <strong class="checklist-text">📝 ${control.description}</strong>
+                        </div>
+                    </div>
+
+                    <div class="implementation-guide">
+                        <h4>🔧 Implementation Steps</h4>
+                        <div>${control.implementation}</div>
+                    </div>
+
+                    <div class="guidance-section">
+                        <h4>💡 Best Practice Guidance</h4>
+                        <div>${control.guidance}</div>
+                    </div>
+
+                    <div class="audit-evidence">
+                        <h4>📊 Required Evidence</h4>
+                        <div class="evidence-list">${control.evidence}</div>
+                    </div>
+                `;
+
+                return card;
+            }
+
+            handleCheckboxChange(checkbox) {
+                const controlId = checkbox.dataset.controlId;
+                const item = checkbox.closest('.checklist-item');
+
+                if (checkbox.checked) {
+                    this.checkedItems.add(controlId);
+                    item.classList.add('checked');
+                } else {
+                    this.checkedItems.delete(controlId);
+                    item.classList.remove('checked');
+                }
+
+                this.saveCheckedState();
+                this.updateProgress();
+            }
+
+            updateProgress() {
+                const total = this.allControls.length;
+                const implemented = this.checkedItems.size;
+                const remaining = total - implemented;
+                const percentage = total > 0 ? Math.round((implemented / total) * 100) : 0;
+
+                document.getElementById('totalControls').textContent = total;
+                document.getElementById('implementedCount').textContent = implemented;
+                document.getElementById('remainingCount').textContent = remaining;
+                document.getElementById('progressPercent').textContent = percentage + '%';
+                document.getElementById('progressFill').style.width = percentage + '%';
+                document.getElementById('progressFill').textContent = percentage + '%';
+            }
+
+            saveCheckedState() {
+                try {
+                    localStorage.setItem('iso27017-checked-items', JSON.stringify([...this.checkedItems]));
+                } catch (e) {
+                    console.warn('Could not save state:', e);
+                }
+            }
+
+            loadCheckedState() {
+                try {
+                    const saved = localStorage.getItem('iso27017-checked-items');
+                    if (saved) {
+                        this.checkedItems = new Set(JSON.parse(saved));
+                    }
+                } catch (e) {
+                    console.warn('Could not load state:', e);
+                }
+            }
+        }
+
+        // Global functions
+        function checkAll() {
+            if (!window.app) return;
+            window.app.allControls.forEach(control => {
+                window.app.checkedItems.add(control.id);
+            });
+            window.app.saveCheckedState();
+            window.app.updateProgress();
+            window.app.applyFilters();
+            alert('✅ All controls marked as implemented!');
+        }
+
+        function uncheckAll() {
+            if (!window.app) return;
+            if (confirm('Are you sure you want to uncheck all controls?')) {
+                window.app.checkedItems.clear();
+                window.app.saveCheckedState();
+                window.app.updateProgress();
+                window.app.applyFilters();
+                alert('⬜ All controls unmarked.');
+            }
+        }
+
+        function resetProgress() {
+            if (!window.app) return;
+            if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+                window.app.checkedItems.clear();
+                window.app.saveCheckedState();
+                window.app.updateProgress();
+                window.app.applyFilters();
+                alert('🔄 Progress reset successfully.');
+            }
+        }
+
+        function exportToExcel() {
+            if (!window.XLSX) {
+                alert('Excel library not loaded. Please check your internet connection.');
+                return;
+            }
+
+            if (!window.app) {
+                alert('App not initialized');
+                return;
+            }
+
+            const controls = window.app.currentControls;
+            const checkedItems = window.app.checkedItems;
+
+            const exportData = controls.map(control => ({
+                'Control ID': control.id,
+                'Control Title': control.title,
+                'Type': control.type === 'cloud-specific' ? 'Cloud-Specific' : 'Enhanced ISO 27002',
+                'Category': control.category.charAt(0).toUpperCase() + control.category.slice(1),
+                'Applies To': control.appliesTo === 'both' ? 'Both' : 
+                             control.appliesTo === 'provider' ? 'Cloud Provider' : 'Cloud Customer',
+                'Status': checkedItems.has(control.id) ? '✅ Implemented' : '❌ Not Implemented',
+                'Description': control.description,
+                'Implementation Steps': control.implementation,
+                'Best Practice Guidance': control.guidance,
+                'Required Evidence': control.evidence
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            ws['!cols'] = [
+                { wch: 12 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, 
+                { wch: 15 }, { wch: 15 }, { wch: 60 }, { wch: 60 }, 
+                { wch: 60 }, { wch: 60 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'ISO 27017 Checklist');
+
+            const total = window.app.allControls.length;
+            const implemented = checkedItems.size;
+            const percentage = Math.round((implemented / total) * 100);
+
+            const categoryCounts = { organizational: { total: 0, implemented: 0 }, technical: { total: 0, implemented: 0 }, operational: { total: 0, implemented: 0 } };
+
+            window.app.allControls.forEach(control => {
+                categoryCounts[control.category].total++;
+                if (checkedItems.has(control.id)) {
+                    categoryCounts[control.category].implemented++;
+                }
+            });
+
+            const cloudSpecific = window.app.allControls.filter(c => c.type === 'cloud-specific').length;
+            const cloudSpecificImpl = window.app.allControls.filter(c => c.type === 'cloud-specific' && checkedItems.has(c.id)).length;
+            const enhanced = window.app.allControls.filter(c => c.type === 'enhanced').length;
+            const enhancedImpl = window.app.allControls.filter(c => c.type === 'enhanced' && checkedItems.has(c.id)).length;
+
+            const summaryData = [
+                ['ISO/IEC 27017:2015 Cloud Security Checklist', ''],
+                ['Generated', new Date().toLocaleString()],
+                ['', ''],
+                ['Overall Progress', ''],
+                ['Total Controls', total],
+                ['Implemented', implemented],
+                ['Not Implemented', total - implemented],
+                ['Completion Rate', percentage + '%'],
+                ['', ''],
+                ['Progress by Category', 'Implemented / Total'],
+                ['Organizational', `${categoryCounts.organizational.implemented} / ${categoryCounts.organizational.total}`],
+                ['Technical', `${categoryCounts.technical.implemented} / ${categoryCounts.technical.total}`],
+                ['Operational', `${categoryCounts.operational.implemented} / ${categoryCounts.operational.total}`],
+                ['', ''],
+                ['Progress by Type', 'Implemented / Total'],
+                ['Cloud-Specific Controls', `${cloudSpecificImpl} / ${cloudSpecific}`],
+                ['Enhanced ISO 27002 Controls', `${enhancedImpl} / ${enhanced}`]
+            ];
+
+            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+            summaryWs['!cols'] = [{ wch: 30 }, { wch: 20 }];
+            XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const filename = `ISO27017_Checklist_${timestamp}.xlsx`;
+
+            XLSX.writeFile(wb, filename);
+            alert(`✅ Checklist exported successfully!\n\nFile: ${filename}\nControls: ${controls.length}\nImplemented: ${implemented} (${percentage}%)`);
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize immediately - no delay needed
+            window.app = new ISO27017App();
+            window.app.init();
+        });
+    </script>
+</body>
+</html>

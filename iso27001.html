@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO/IEC 27002:2022 Cloud Controls Mapping</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ISO/IEC 27002:2022 Cloud Controls Mapping</h1>
+            <h3 class="sub-title">Professional cloud security compliance mapping tool</h3>
+            <div class="app-status" id="appStatus">
+                <span class="status-indicator" id="statusIndicator">🔄</span>
+                <span class="status-text" id="statusText">Initializing...</span>
+            </div>
+        </header>
+        
+        <section class="cloud-provider-selection">
+            <h3>🌐 Choose Your Cloud Provider(s)</h3>
+            <p class="provider-description">Select which cloud providers you want to see control mappings for.</p>
+            
+            <div class="provider-checkboxes">
+                <label class="provider-checkbox">
+                    <input type="checkbox" id="aws-provider" checked>
+                    <span class="checkmark aws-checkmark">🔶 AWS</span>
+                </label>
+                <label class="provider-checkbox">
+                    <input type="checkbox" id="azure-provider" checked>
+                    <span class="checkmark azure-checkmark">🔷 Azure</span>
+                </label>
+                <label class="provider-checkbox">
+                    <input type="checkbox" id="gcp-provider" checked>
+                    <span class="checkmark gcp-checkmark">🔵 Google Cloud</span>
+                </label>
+            </div>
+        </section>
+        
+        <section class="filter-section">
+            <h3>🔍 Filter & Export Controls</h3>
+            <div class="filter-controls">
+                <input type="text" id="searchInput" placeholder="Search controls...">
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="5">5 - Organizational</option>
+                    <option value="6">6 - People</option>
+                    <option value="7">7 - Physical</option>
+                    <option value="8">8 - Technological</option>
+                </select>
+                <button class="export-btn" onclick="exportToExcel()">📊 Export to Excel</button>
+                <button class="reset-btn" onclick="resetFilters()">🔄 Reset</button>
+                <a href="index.html" class="action-btn secondary-btn">⬅️ Back to Frameworks</a>
+            </div>
+        </section>
+        
+        <section class="controls-container">
+            <div class="controls-grid" id="controlsGrid">
+                <!-- Controls will be loaded here -->
+            </div>
+        </section>
+        
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>Loading controls...</p>
+        </div>
+    </div>
+
+    <!-- XLSX Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Data Files - ORIGINAL ORDER -->
+    <script src="data/base-controls.js"></script>
+    <script src="data/azure-controls.js"></script>
+    <script src="data/aws-controls.js"></script>
+    <script src="data/gcp-controls.js"></script>
+    <script src="data/controls-data.js"></script>
+    
+    <!-- SIMPLIFIED APP - All in One -->
+    <script>
+        console.log('🚀 Starting app initialization...');
+        
+        // Simple App - No dependencies
+        class SimpleApp {
+            constructor() {
+                this.selectedProviders = new Set(['aws', 'azure', 'gcp']);
+                this.allControls = [];
+                this.currentControls = [];
+                this.filters = {
+                    search: '',
+                    category: ''
+                };
+            }
+
+            init() {
+                console.log('📋 Initializing SimpleApp...');
+                
+                // Check if controls are loaded
+                if (!window.ISO27002_CONTROLS) {
+                    console.error('❌ Controls not loaded!');
+                    this.showError('Controls data not loaded. Check console for details.');
+                    return;
+                }
+
+                this.allControls = window.ISO27002_CONTROLS;
+                console.log('✅ Loaded', this.allControls.length, 'controls');
+
+                // Bind events
+                this.bindEvents();
+
+                // Initial render
+                this.applyFilters();
+
+                // Update status
+                document.getElementById('statusIndicator').textContent = '✅';
+                document.getElementById('statusText').textContent = `Ready - ${this.allControls.length} controls loaded`;
+                
+                console.log('✅ App initialized successfully!');
+            }
+
+            bindEvents() {
+                // Provider checkboxes
+                ['aws-provider', 'azure-provider', 'gcp-provider'].forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.addEventListener('change', (e) => {
+                            const provider = id.replace('-provider', '');
+                            if (e.target.checked) {
+                                this.selectedProviders.add(provider);
+                            } else {
+                                this.selectedProviders.delete(provider);
+                            }
+                            this.renderControls(this.currentControls);
+                        });
+                    }
+                });
+
+                // Search
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        this.filters.search = e.target.value;
+                        this.applyFilters();
+                    });
+                }
+
+                // Category filter
+                const categoryFilter = document.getElementById('categoryFilter');
+                if (categoryFilter) {
+                    categoryFilter.addEventListener('change', (e) => {
+                        this.filters.category = e.target.value;
+                        this.applyFilters();
+                    });
+                }
+
+                // Compliance status - use event delegation
+                document.addEventListener('change', (e) => {
+                    if (e.target.matches('select[id^="status-"]')) {
+                        const controlId = e.target.dataset.controlId;
+                        const status = e.target.value;
+                        const commentsInput = document.getElementById(`comments-${controlId}`);
+                        const comments = commentsInput ? commentsInput.value : '';
+                        this.saveComplianceStatus(controlId, status, comments);
+                    }
+                });
+
+                document.addEventListener('input', (e) => {
+                    if (e.target.matches('input[id^="comments-"]')) {
+                        const controlId = e.target.dataset.controlId;
+                        const comments = e.target.value;
+                        const statusSelect = document.getElementById(`status-${controlId}`);
+                        const status = statusSelect ? statusSelect.value : '';
+                        this.saveComplianceStatus(controlId, status, comments);
+                    }
+                });
+            }
+
+            applyFilters() {
+                let filtered = [...this.allControls];
+
+                // Search filter
+                if (this.filters.search) {
+                    const term = this.filters.search.toLowerCase();
+                    filtered = filtered.filter(control => 
+                        control.id.toLowerCase().includes(term) ||
+                        control.title.toLowerCase().includes(term) ||
+                        control.implementation.toLowerCase().includes(term)
+                    );
+                }
+
+                // Category filter
+                if (this.filters.category) {
+                    filtered = filtered.filter(control => 
+                        control.category === this.filters.category
+                    );
+                }
+
+                this.currentControls = filtered;
+                this.renderControls(filtered);
+            }
+
+            renderControls(controls) {
+                const grid = document.getElementById('controlsGrid');
+                if (!grid) return;
+
+                grid.innerHTML = '';
+
+                controls.forEach(control => {
+                    const card = this.createControlCard(control);
+                    grid.appendChild(card);
+                });
+            }
+
+            createControlCard(control) {
+                const card = document.createElement('div');
+                card.className = 'control-card';
+                
+                let mappingsHTML = '';
+                
+                if (this.selectedProviders.has('aws')) {
+                    mappingsHTML += `
+                        <div class="cloud-section aws-section">
+                            <h4>🔶 AWS Services</h4>
+                            <div class="service-list">${control.cloudMappings?.aws || 'N/A'}</div>
+                        </div>
+                    `;
+                }
+                
+                if (this.selectedProviders.has('azure')) {
+                    mappingsHTML += `
+                        <div class="cloud-section azure-section">
+                            <h4>🔷 Azure Services</h4>
+                            <div class="service-list">${control.cloudMappings?.azure || 'N/A'}</div>
+                        </div>
+                    `;
+                }
+                
+                if (this.selectedProviders.has('gcp')) {
+                    mappingsHTML += `
+                        <div class="cloud-section gcp-section">
+                            <h4>🔵 Google Cloud Services</h4>
+                            <div class="service-list">${control.cloudMappings?.gcp || 'N/A'}</div>
+                        </div>
+                    `;
+                }
+
+                const gridClass = this.selectedProviders.size === 1 ? 'single-provider' : 
+                                  this.selectedProviders.size === 2 ? 'two-providers' : 'three-providers';
+
+                // Get saved status
+                const savedStatus = this.getComplianceStatus(control.id);
+
+                card.innerHTML = `
+                    <div class="control-header">
+                        <div class="control-id">${control.id}</div>
+                    </div>
+                    <div class="control-title">${control.title}</div>
+                    
+                    <div class="implementation-guide">
+                        <h4>📋 Implementation Guidance</h4>
+                        <div>${control.implementation}</div>
+                    </div>
+                    
+                    <div class="cloud-mappings ${gridClass}">
+                        ${mappingsHTML}
+                    </div>
+                    
+                    <div class="audit-evidence">
+                        <h4>📊 Audit Evidence Examples</h4>
+                        <div class="evidence-list">${control.evidence}</div>
+                    </div>
+                    
+                    <div class="compliance-status">
+                        <select id="status-${control.id}" data-control-id="${control.id}">
+                            <option value="">Select Status</option>
+                            <option value="implemented" ${savedStatus.status === 'implemented' ? 'selected' : ''}>✅ Implemented</option>
+                            <option value="partial" ${savedStatus.status === 'partial' ? 'selected' : ''}>⚠️ Partially Implemented</option>
+                            <option value="not-implemented" ${savedStatus.status === 'not-implemented' ? 'selected' : ''}>❌ Not Implemented</option>
+                            <option value="not-applicable" ${savedStatus.status === 'not-applicable' ? 'selected' : ''}>➖ Not Applicable</option>
+                        </select>
+                        <input type="text" 
+                               id="comments-${control.id}" 
+                               data-control-id="${control.id}"
+                               placeholder="Add audit comments/notes..." 
+                               value="${savedStatus.comments}">
+                    </div>
+                `;
+                
+                return card;
+            }
+
+            getComplianceStatus(controlId) {
+                try {
+                    const saved = localStorage.getItem('iso27002-compliance-status');
+                    if (saved) {
+                        const statusData = JSON.parse(saved);
+                        return statusData[controlId] || { status: '', comments: '' };
+                    }
+                } catch (e) {
+                    console.warn('Could not load compliance status:', e);
+                }
+                return { status: '', comments: '' };
+            }
+
+            saveComplianceStatus(controlId, status, comments) {
+                try {
+                    const saved = localStorage.getItem('iso27002-compliance-status');
+                    const statusData = saved ? JSON.parse(saved) : {};
+                    statusData[controlId] = { status, comments };
+                    localStorage.setItem('iso27002-compliance-status', JSON.stringify(statusData));
+                } catch (e) {
+                    console.warn('Could not save compliance status:', e);
+                }
+            }
+
+            showError(message) {
+                alert(message);
+                document.getElementById('statusIndicator').textContent = '❌';
+                document.getElementById('statusText').textContent = 'Error';
+            }
+        }
+
+        // Global functions
+        function exportToExcel() {
+            if (!window.XLSX) {
+                alert('Excel library not loaded. Please check your internet connection.');
+                return;
+            }
+
+            if (!window.app) {
+                alert('App not initialized');
+                return;
+            }
+
+            const controls = window.app.currentControls;
+            const selectedProviders = Array.from(window.app.selectedProviders);
+
+            // Prepare export data
+            const exportData = controls.map(control => {
+                const row = {
+                    'Control ID': control.id,
+                    'Control Title': control.title,
+                    'Category': getCategoryLabel(control.category),
+                    'Implementation Guidance': control.implementation,
+                    'Audit Evidence': control.evidence
+                };
+
+                // Add cloud provider columns
+                selectedProviders.forEach(provider => {
+                    const providerName = provider === 'aws' ? 'AWS' : provider === 'azure' ? 'Azure' : 'Google Cloud';
+                    row[`${providerName} Services`] = control.cloudMappings[provider] || 'N/A';
+                });
+
+                // Add compliance status
+                const status = window.app.getComplianceStatus(control.id);
+                row['Compliance Status'] = status.status ? getStatusLabel(status.status) : 'Not Set';
+                row['Audit Comments'] = status.comments || '';
+
+                return row;
+            });
+
+            // Create workbook
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'ISO27002 Controls');
+
+            // Create summary sheet
+            const summaryData = [
+                ['ISO 27002:2022 Cloud Controls Audit Report', ''],
+                ['Generated', new Date().toLocaleString()],
+                ['Total Controls', controls.length],
+                ['', ''],
+                ['Compliance Summary', ''],
+            ];
+
+            // Count by status
+            const statusCounts = {};
+            controls.forEach(control => {
+                const status = window.app.getComplianceStatus(control.id);
+                const statusKey = status.status || 'not-set';
+                statusCounts[statusKey] = (statusCounts[statusKey] || 0) + 1;
+            });
+
+            Object.entries(statusCounts).forEach(([status, count]) => {
+                summaryData.push([getStatusLabel(status), count]);
+            });
+
+            // Calculate compliance percentage
+            const implemented = statusCounts['implemented'] || 0;
+            const partial = statusCounts['partial'] || 0;
+            const total = controls.length;
+            const complianceRate = ((implemented + (partial * 0.5)) / total * 100).toFixed(1);
+
+            summaryData.push(['', '']);
+            summaryData.push(['Overall Compliance Rate', `${complianceRate}%`]);
+
+            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+            // Generate filename
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const filename = `ISO27002_Audit_Report_${timestamp}.xlsx`;
+
+            // Export
+            XLSX.writeFile(wb, filename);
+            alert(`✅ Audit report exported successfully!\n\nFile: ${filename}\nControls: ${controls.length}\nCompliance Rate: ${complianceRate}%`);
+        }
+
+        function getCategoryLabel(category) {
+            const labels = {
+                '5': '5 - Organizational',
+                '6': '6 - People',
+                '7': '7 - Physical',
+                '8': '8 - Technological'
+            };
+            return labels[category] || category;
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'implemented': '✅ Implemented',
+                'partial': '⚠️ Partially Implemented',
+                'not-implemented': '❌ Not Implemented',
+                'not-applicable': '➖ Not Applicable',
+                'not-set': 'Not Set',
+                '': 'Not Set'
+            };
+            return labels[status] || status;
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = '';
+            if (window.app) {
+                window.app.filters = { search: '', category: '' };
+                window.app.applyFilters();
+            }
+        }
+
+        // Initialize on DOM ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📄 DOM Ready');
+            
+            // Initialize immediately - removed delay
+            try {
+                console.log('🔍 Checking if controls are loaded...');
+                console.log('ISO27002_CONTROLS:', typeof window.ISO27002_CONTROLS);
+                
+                if (!window.ISO27002_CONTROLS) {
+                    console.error('❌ Controls not available!');
+                    console.log('Base controls:', typeof window.ISO27002_BASE_CONTROLS);
+                    console.log('Azure controls:', typeof window.AZURE_CONTROLS_MAPPING);
+                    console.log('AWS controls:', typeof window.AWS_CONTROLS_MAPPING);
+                    console.log('GCP controls:', typeof window.GCP_CONTROLS_MAPPING);
+                    
+                    alert('ERROR: Control data files are not loading. Please check:\n\n1. All files in data/ folder exist\n2. File names are correct\n3. Check browser console (F12) for 404 errors');
+                    return;
+                }
+                
+                window.app = new SimpleApp();
+                window.app.init();
+            } catch (error) {
+                console.error('❌ Initialization error:', error);
+                alert('Initialization failed: ' + error.message);
+            }
+        });
+
+        // Debug helper
+        window.debugApp = function() {
+            console.log('=== APP DEBUG ===');
+            console.log('ISO27002_BASE_CONTROLS:', typeof window.ISO27002_BASE_CONTROLS, window.ISO27002_BASE_CONTROLS?.length);
+            console.log('AZURE_CONTROLS_MAPPING:', typeof window.AZURE_CONTROLS_MAPPING, Object.keys(window.AZURE_CONTROLS_MAPPING || {}).length);
+            console.log('AWS_CONTROLS_MAPPING:', typeof window.AWS_CONTROLS_MAPPING, Object.keys(window.AWS_CONTROLS_MAPPING || {}).length);
+            console.log('GCP_CONTROLS_MAPPING:', typeof window.GCP_CONTROLS_MAPPING, Object.keys(window.GCP_CONTROLS_MAPPING || {}).length);
+            console.log('ISO27002_CONTROLS:', typeof window.ISO27002_CONTROLS, window.ISO27002_CONTROLS?.length);
+            console.log('app:', typeof window.app);
+        };
+
+        console.log('💡 Type debugApp() in console to see what loaded');
+    </script>
+</body>
+</html>
