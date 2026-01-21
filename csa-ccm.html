@@ -635,6 +635,17 @@
                 return this.complianceStatus.get(controlId) || '';
             }
 
+            getStatusDisplayName(status) {
+                // Convert status codes to display-friendly names
+                const displayNames = {
+                    'implemented': 'Implemented',
+                    'partial': 'Partial',
+                    'not-implemented': 'Not Implemented',
+                    'not-applicable': 'Not Applicable'
+                };
+                return displayNames[status] || 'Not Implemented';
+            }
+
             loadComments() {
                 const saved = localStorage.getItem('ccm_auditor_comments');
                 if (saved) {
@@ -668,12 +679,92 @@
             }
             
             exportToPDF() {
-                if (!window.jspdf) {
-                    alert('PDF library not loaded. Please refresh the page.');
-                    return;
+                try {
+                    if (!window.jspdf || !window.jspdf.jsPDF) {
+                        alert('PDF library not loaded. Please refresh the page.');
+                        return;
+                    }
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    const controls = this.currentControls;
+
+                    // Title
+                    doc.setFontSize(18);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('CSA Cloud Controls Matrix v4 Audit Report', 15, 20);
+
+                    // Metadata
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 15, 30);
+                    doc.text(`Total Controls: ${controls.length}`, 15, 36);
+
+                    // Status summary
+                    const statusCounts = {
+                        'Implemented': 0,
+                        'Partial': 0,
+                        'Not Implemented': 0,
+                        'Not Applicable': 0
+                    };
+
+                    this.allControls.forEach(c => {
+                        const statusCode = this.getComplianceStatus(c.id);
+                        const statusName = this.getStatusDisplayName(statusCode);
+                        if (statusName in statusCounts) {
+                            statusCounts[statusName]++;
+                        }
+                    });
+
+                    let yPos = 45;
+                    doc.setFontSize(10);
+                    doc.text('Status Summary:', 15, yPos);
+                    yPos += 6;
+                    Object.entries(statusCounts).forEach(([status, count]) => {
+                        doc.text(`  ${status}: ${count}`, 15, yPos);
+                        yPos += 5;
+                    });
+
+                    // Controls list
+                    yPos += 10;
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Controls:', 15, yPos);
+                    yPos += 8;
+
+                    doc.setFontSize(9);
+                    controls.forEach((control) => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+
+                        const statusCode = this.getComplianceStatus(control.id);
+                        const statusName = this.getStatusDisplayName(statusCode);
+
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`${control.id}: ${control.title}`, 15, yPos);
+                        yPos += 5;
+
+                        doc.setFont(undefined, 'normal');
+                        doc.text(`Domain: ${control.domainName}`, 15, yPos);
+                        yPos += 5;
+
+                        doc.text(`Status: ${statusName}`, 15, yPos);
+                        yPos += 10;
+                    });
+
+                    // Save PDF
+                    const timestamp = new Date().toISOString().slice(0, 10);
+                    doc.save(`CSA_CCM_v4_Audit_Report_${timestamp}.pdf`);
+
+                    this.closeExportDialog();
+                    alert('✅ PDF report exported successfully!');
+                } catch (error) {
+                    console.error('PDF export error:', error);
+                    alert('Failed to export PDF report. See console for details.');
                 }
-                alert('PDF export feature will be available soon!');
-                this.closeExportDialog();
             }
             
             initViewModes() {
@@ -706,13 +797,20 @@
             }
             
             exportToExcel() {
-                if (!window.XLSX) {
-                    alert('Excel export library not loaded');
-                    return;
-                }
+                try {
+                    if (!window.XLSX) {
+                        alert('Excel export library not loaded');
+                        return;
+                    }
 
-                const controls = this.currentControls;
-            const data = controls.map(c => ({
+                    const controls = this.currentControls;
+                    
+                    if (!controls || controls.length === 0) {
+                        alert('No controls to export. Please ensure controls are loaded.');
+                        return;
+                    }
+
+                    const data = controls.map(c => ({
                 'Control ID': c.id,
                 'Domain': c.domain,
                 'Domain Name': c.domainName,
@@ -747,10 +845,15 @@
                 ];
                 ws['!cols'] = wscols;
 
-                const timestamp = new Date().toISOString().slice(0, 10);
-                XLSX.writeFile(wb, `CSA_CCM_v4_Azure_Audit_Report_${timestamp}.xlsx`);
-                
-                this.closeExportDialog();
+                    const timestamp = new Date().toISOString().slice(0, 10);
+                    XLSX.writeFile(wb, `CSA_CCM_v4_Azure_Audit_Report_${timestamp}.xlsx`);
+                    
+                    this.closeExportDialog();
+                    alert('✅ Excel report exported successfully!');
+                } catch (error) {
+                    console.error('Excel export error:', error);
+                    alert('Failed to export Excel report. See console for details.');
+                }
             }
         }
 

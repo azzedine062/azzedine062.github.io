@@ -437,14 +437,38 @@
                         <div class="section-content">${this.escapeHtml(control.evidence)}</div>
                     </details>
                     
-                    <div class="control-footer">
-                        <select class="status-dropdown" data-control-id="${this.escapeHtml(control.id)}">
-                            <option value="">Select Status</option>
-                            <option value="implemented" ${statusValue === 'implemented' ? 'selected' : ''}>✅ Implemented</option>
-                            <option value="in-progress" ${statusValue === 'in-progress' ? 'selected' : ''}>⚡ In Progress</option>
-                            <option value="not-implemented" ${statusValue === 'not-implemented' ? 'selected' : ''}>⬜ Not Implemented</option>
-                            <option value="not-applicable" ${statusValue === 'not-applicable' ? 'selected' : ''}>➖ Not Applicable</option>
-                        </select>
+                    <div class="compliance-status-section">
+                        <h4>✓ Compliance Status</h4>
+                        <div class="compliance-status-buttons">
+                            <button class="status-btn status-implemented ${statusValue === 'implemented' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${this.escapeHtml(control.id)}', 'implemented')">
+                                Implemented
+                            </button>
+                            <button class="status-btn status-in-progress ${statusValue === 'in-progress' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${this.escapeHtml(control.id)}', 'in-progress')">
+                                In Progress
+                            </button>
+                            <button class="status-btn status-not-implemented ${statusValue === 'not-implemented' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${this.escapeHtml(control.id)}', 'not-implemented')">
+                                Not Implemented
+                            </button>
+                            <button class="status-btn status-not-applicable ${statusValue === 'not-applicable' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${this.escapeHtml(control.id)}', 'not-applicable')">
+                                N/A
+                            </button>
+                        </div>
+                        
+                        <div class="auditor-comment-section">
+                            <label for="comment-${this.escapeHtml(control.id)}" class="comment-label">
+                                💬 Auditor Comments / Notes:
+                            </label>
+                            <textarea 
+                                id="comment-${this.escapeHtml(control.id)}" 
+                                class="auditor-comment-textarea"
+                                placeholder="Add implementation notes, evidence references, remediation plans, or any other relevant comments..."
+                                onblur="window.app.saveComment('${this.escapeHtml(control.id)}', this.value)"
+                            >${this.escapeHtml(this.getComment(control.id))}</textarea>
+                        </div>
                     </div>
                 `;
 
@@ -490,10 +514,29 @@
                 }
             }
 
-            saveComplianceStatus(controlId, status) {
-                this.complianceStatus.set(controlId, { status, comments: '' });
+            saveComplianceStatus(controlId, status, comments) {
+                const existing = this.complianceStatus.get(controlId) || {};
+                this.complianceStatus.set(controlId, { 
+                    status: status || existing.status || '', 
+                    comments: comments !== undefined ? comments : (existing.comments || '')
+                });
                 const data = Object.fromEntries(this.complianceStatus);
                 localStorage.setItem('iso27002-compliance-status', JSON.stringify(data));
+            }
+
+            setComplianceStatus(controlId, status) {
+                this.saveComplianceStatus(controlId, status);
+                this.updateProgress();
+                this.applyFilters();
+            }
+
+            getComment(controlId) {
+                const data = this.complianceStatus.get(controlId);
+                return data?.comments || '';
+            }
+
+            saveComment(controlId, comments) {
+                this.saveComplianceStatus(controlId, null, comments);
             }
 
             updateProgress() {
@@ -553,35 +596,229 @@
             }
 
             exportToExcel() {
-                if (!window.XLSX) {
-                    alert('Excel library not loaded');
-                    return;
+                try {
+                    if (!window.XLSX) {
+                        alert('Excel library not loaded. Please refresh the page.');
+                        return;
+                    }
+
+                    if (!this.currentControls || this.currentControls.length === 0) {
+                        alert('No controls to export. Please ensure controls are loaded.');
+                        return;
+                    }
+
+                    // Get export options
+                    const includeImplementation = document.getElementById('optImplementation')?.checked !== false;
+                    const includeCloudMappings = document.getElementById('optCloudMappings')?.checked !== false;
+                    const controlsFilter = document.querySelector('input[name="controlsFilter"]:checked')?.value || 'all';
+
+                    // Determine which controls to export
+                    let controlsToExport = this.currentControls;
+                    if (controlsFilter === 'implemented') {
+                        controlsToExport = this.currentControls.filter(c => {
+                            const status = this.complianceStatus.get(c.id);
+                            return status && status.status === 'implemented';
+                        });
+                    }
+
+                    if (controlsToExport.length === 0) {
+                        alert('No controls match the selected filter.');
+                        return;
+                    }
+
+                    // Prepare export data
+                    const data = controlsToExport.map(c => {
+                        const row = {
+                            'Control ID': c.id,
+                            'Title': c.title,
+                            'Category': this.getCategoryLabel(c.category)
+                        };
+
+                        if (includeImplementation) {
+                            row['Implementation'] = c.implementation;
+                            row['Evidence'] = c.evidence;
+                        }
+
+                        if (includeCloudMappings) {
+                            row['AWS'] = c.cloudMappings?.aws || 'N/A';
+                            row['Azure'] = c.cloudMappings?.azure || 'N/A';
+                            row['GCP'] = c.cloudMappings?.gcp || 'N/A';
+                        }
+
+                        const status = this.complianceStatus.get(c.id);
+                        row['Status'] = status ? this.getStatusLabel(status.status) : 'Not Set';
+
+                        return row;
+                    });
+
+                    // Create workbook
+                    const ws = XLSX.utils.json_to_sheet(data);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'ISO27002 Controls');
+
+                    // Create summary sheet if option is checked
+                    if (document.getElementById('optExecSummary')?.checked !== false) {
+                        const summaryData = [
+                            ['ISO/IEC 27002:2022 Compliance Report'],
+                            ['Generated', new Date().toLocaleString()],
+                            ['Total Controls', this.allControls.length],
+                            ['Controls in Report', controlsToExport.length],
+                            [''],
+                            ['Status Summary'],
+                        ];
+
+                        const statusCounts = {};
+                        this.allControls.forEach(c => {
+                            const status = this.complianceStatus.get(c.id);
+                            const key = status?.status || 'not-set';
+                            statusCounts[key] = (statusCounts[key] || 0) + 1;
+                        });
+
+                        Object.entries(statusCounts).forEach(([status, count]) => {
+                            summaryData.push([this.getStatusLabel(status), count]);
+                        });
+
+                        const implemented = statusCounts['implemented'] || 0;
+                        const total = this.allControls.length;
+                        const percentage = total > 0 ? Math.round((implemented / total) * 100) : 0;
+                        summaryData.push([''], ['Overall Progress', `${percentage}%`]);
+
+                        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+                        XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+                    }
+
+                    // Generate filename and download
+                    const timestamp = new Date().toISOString().slice(0, 10);
+                    XLSX.writeFile(wb, `ISO27002_Compliance_Report_${timestamp}.xlsx`);
+
+                    this.closeExportDialog();
+                    alert('✅ Excel report exported successfully!');
+                } catch (error) {
+                    console.error('Excel export error:', error);
+                    alert('Failed to export Excel report. See console for details.');
                 }
-
-                const data = this.currentControls.map(c => ({
-                    'Control ID': c.id,
-                    'Title': c.title,
-                    'Category': c.category,
-                    'Implementation': c.implementation,
-                    'Evidence': c.evidence,
-                    'AWS': c.cloudMappings?.aws || 'N/A',
-                    'Azure': c.cloudMappings?.azure || 'N/A',
-                    'GCP': c.cloudMappings?.gcp || 'N/A',
-                    'Status': this.complianceStatus.get(c.id)?.status || 'Not Set'
-                }));
-
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'ISO27002 Controls');
-
-                const timestamp = new Date().toISOString().slice(0, 10);
-                XLSX.writeFile(wb, `ISO27002_Audit_Report_${timestamp}.xlsx`);
-                this.closeExportDialog();
             }
 
             exportToPDF() {
-                alert('PDF export feature will be available soon!');
-                this.closeExportDialog();
+                try {
+                    if (!window.jspdf || !window.jspdf.jsPDF) {
+                        alert('PDF library not loaded. Please refresh the page.');
+                        return;
+                    }
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    // Get export options
+                    const controlsFilter = document.querySelector('input[name="controlsFilter"]:checked')?.value || 'all';
+                    
+                    // Determine which controls to export
+                    let controlsToExport = this.currentControls;
+                    if (controlsFilter === 'implemented') {
+                        controlsToExport = this.currentControls.filter(c => {
+                            const status = this.complianceStatus.get(c.id);
+                            return status && status.status === 'implemented';
+                        });
+                    }
+
+                    if (controlsToExport.length === 0) {
+                        alert('No controls match the selected filter.');
+                        return;
+                    }
+
+                    // Title
+                    doc.setFontSize(18);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('ISO/IEC 27002:2022 Compliance Report', 15, 20);
+
+                    // Metadata
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 15, 30);
+                    doc.text(`Total Controls: ${controlsToExport.length}`, 15, 36);
+
+                    // Progress summary
+                    const implemented = this.allControls.filter(c => {
+                        const status = this.complianceStatus.get(c.id);
+                        return status && status.status === 'implemented';
+                    }).length;
+                    const percentage = Math.round((implemented / this.allControls.length) * 100);
+                    doc.text(`Implementation Progress: ${percentage}% (${implemented}/${this.allControls.length})`, 15, 42);
+
+                    // Controls list
+                    let yPos = 55;
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Controls:', 15, yPos);
+                    yPos += 8;
+
+                    doc.setFontSize(9);
+                    controlsToExport.forEach((control, index) => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+
+                        const status = this.complianceStatus.get(control.id);
+                        const statusText = status ? this.getStatusLabelForPDF(status.status) : 'Not Set';
+
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`${control.id}: ${control.title}`, 15, yPos);
+                        yPos += 5;
+
+                        doc.setFont(undefined, 'normal');
+                        doc.text(`Status: ${statusText}`, 15, yPos);
+                        yPos += 5;
+
+                        doc.text(`Category: ${this.getCategoryLabel(control.category)}`, 15, yPos);
+                        yPos += 10;
+                    });
+
+                    // Save PDF
+                    const timestamp = new Date().toISOString().slice(0, 10);
+                    doc.save(`ISO27002_Compliance_Report_${timestamp}.pdf`);
+
+                    this.closeExportDialog();
+                    alert('✅ PDF report exported successfully!');
+                } catch (error) {
+                    console.error('PDF export error:', error);
+                    alert('Failed to export PDF report. See console for details.');
+                }
+            }
+
+            getCategoryLabel(category) {
+                const labels = {
+                    '5': 'Organizational',
+                    '6': 'People',
+                    '7': 'Physical',
+                    '8': 'Technological'
+                };
+                return labels[category] || category;
+            }
+
+            getStatusLabel(status) {
+                const labels = {
+                    'implemented': '✅ Implemented',
+                    'in-progress': '⚡ In Progress',
+                    'not-implemented': '⬜ Not Implemented',
+                    'not-applicable': '➖ Not Applicable',
+                    'not-set': 'Not Set',
+                    '': 'Not Set'
+                };
+                return labels[status] || 'Not Set';
+            }
+
+            getStatusLabelForPDF(status) {
+                // PDF-safe labels without emojis
+                const labels = {
+                    'implemented': 'Implemented',
+                    'in-progress': 'In Progress',
+                    'not-implemented': 'Not Implemented',
+                    'not-applicable': 'Not Applicable',
+                    'not-set': 'Not Set',
+                    '': 'Not Set'
+                };
+                return labels[status] || 'Not Set';
             }
 
             resetFilters() {

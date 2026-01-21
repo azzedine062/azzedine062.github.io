@@ -185,6 +185,7 @@
                 this.allControls = [];
                 this.currentControls = [];
                 this.checkedItems = new Set();
+                this.complianceStatus = new Map(); // New: stores {status, comments}
                 this.currentView = 'checklist';
                 this.filters = {
                     search: '',
@@ -193,6 +194,7 @@
                     appliesTo: ''
                 };
                 this.loadCheckedState();
+                this.loadComplianceStatus();
             }
             
             showExportDialog() {
@@ -206,12 +208,73 @@
             }
             
             exportToPDF() {
-                if (!window.jspdf) {
-                    alert('PDF library not loaded. Please refresh the page.');
-                    return;
+                try {
+                    if (!window.jspdf || !window.jspdf.jsPDF) {
+                        alert('PDF library not loaded. Please refresh the page.');
+                        return;
+                    }
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    const controls = this.currentControls;
+                    const checkedItems = this.checkedItems;
+
+                    // Title
+                    doc.setFontSize(18);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('ISO/IEC 27017:2015 Compliance Report', 15, 20);
+
+                    // Metadata
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 15, 30);
+                    doc.text(`Total Controls: ${controls.length}`, 15, 36);
+
+                    // Progress
+                    const implemented = checkedItems.size;
+                    const total = this.allControls.length;
+                    const percentage = Math.round((implemented / total) * 100);
+                    doc.text(`Implementation Progress: ${percentage}% (${implemented}/${total})`, 15, 42);
+
+                    // Controls list
+                    let yPos = 55;
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Controls:', 15, yPos);
+                    yPos += 8;
+
+                    doc.setFontSize(9);
+                    controls.forEach((control) => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+
+                        const statusText = checkedItems.has(control.id) ? 'Implemented' : 'Not Implemented';
+
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`${control.id}: ${control.title}`, 15, yPos);
+                        yPos += 5;
+
+                        doc.setFont(undefined, 'normal');
+                        doc.text(`Status: ${statusText}`, 15, yPos);
+                        yPos += 5;
+
+                        doc.text(`Type: ${control.type === 'cloud-specific' ? 'Cloud-Specific' : 'Enhanced ISO 27002'}`, 15, yPos);
+                        yPos += 10;
+                    });
+
+                    // Save PDF
+                    const timestamp = new Date().toISOString().slice(0, 10);
+                    doc.save(`ISO27017_Compliance_Report_${timestamp}.pdf`);
+
+                    this.closeExportDialog();
+                    alert('✅ PDF report exported successfully!');
+                } catch (error) {
+                    console.error('PDF export error:', error);
+                    alert('Failed to export PDF report. See console for details.');
                 }
-                alert('PDF export feature will be available soon!');
-                this.closeExportDialog();
             }
 
             init() {
@@ -395,16 +458,6 @@
                         </div>
                     </div>
                     
-                    <div class="control-footer">
-                        <select class="status-dropdown" data-control-id="${control.id}">
-                            <option value="">Select Status</option>
-                            <option value="implemented" ${isChecked ? 'selected' : ''}>✅ Implemented</option>
-                            <option value="in-progress">⚡ In Progress</option>
-                            <option value="not-implemented" ${!isChecked ? 'selected' : ''}>⬜ Not Implemented</option>
-                            <option value="not-applicable">➖ Not Applicable</option>
-                        </select>
-                    </div>
-
                     <details class="section-collapsible">
                         <summary class="section-header">
                             <span><span class="icon">🔧</span><strong>Implementation Steps</strong></span>
@@ -478,14 +531,38 @@
                         <div class="section-content">${control.evidence}</div>
                     </details>
                     
-                    <div class="control-footer">
-                        <label class="checkbox-label">
-                            <input type="checkbox" 
-                                   class="checklist-checkbox" 
-                                   data-control-id="${control.id}"
-                                   ${isChecked ? 'checked' : ''}>
-                            Mark as Implemented
-                        </label>
+                    <div class="compliance-status-section">
+                        <h4>✓ Compliance Status</h4>
+                        <div class="compliance-status-buttons">
+                            <button class="status-btn status-implemented ${this.getComplianceStatus(control.id) === 'implemented' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${control.id}', 'implemented')">
+                                Implemented
+                            </button>
+                            <button class="status-btn status-in-progress ${this.getComplianceStatus(control.id) === 'in-progress' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${control.id}', 'in-progress')">
+                                In Progress
+                            </button>
+                            <button class="status-btn status-not-implemented ${this.getComplianceStatus(control.id) === 'not-implemented' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${control.id}', 'not-implemented')">
+                                Not Implemented
+                            </button>
+                            <button class="status-btn status-not-applicable ${this.getComplianceStatus(control.id) === 'not-applicable' ? 'active' : ''}" 
+                                    onclick="window.app.setComplianceStatus('${control.id}', 'not-applicable')">
+                                N/A
+                            </button>
+                        </div>
+                        
+                        <div class="auditor-comment-section">
+                            <label for="comment-${control.id}" class="comment-label">
+                                💬 Auditor Comments / Notes:
+                            </label>
+                            <textarea 
+                                id="comment-${control.id}" 
+                                class="auditor-comment-textarea"
+                                placeholder="Add implementation notes, evidence references, remediation plans, or any other relevant comments..."
+                                onblur="window.app.saveComment('${control.id}', this.value)"
+                            >${this.getComment(control.id)}</textarea>
+                        </div>
                     </div>
                 `;
             }
@@ -557,6 +634,54 @@
                     console.warn('Could not load state:', e);
                 }
             }
+
+            loadComplianceStatus() {
+                try {
+                    const saved = localStorage.getItem('iso27017-compliance-status');
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        this.complianceStatus = new Map(Object.entries(data));
+                    }
+                } catch (e) {
+                    console.warn('Could not load compliance status:', e);
+                }
+            }
+
+            saveComplianceStatus(controlId, status, comments) {
+                const existing = this.complianceStatus.get(controlId) || {};
+                this.complianceStatus.set(controlId, { 
+                    status: status || existing.status || '', 
+                    comments: comments !== undefined ? comments : (existing.comments || '')
+                });
+                const data = Object.fromEntries(this.complianceStatus);
+                localStorage.setItem('iso27017-compliance-status', JSON.stringify(data));
+            }
+
+            setComplianceStatus(controlId, status) {
+                this.saveComplianceStatus(controlId, status);
+                // Update checkedItems for backwards compatibility
+                if (status === 'implemented') {
+                    this.checkedItems.add(controlId);
+                } else {
+                    this.checkedItems.delete(controlId);
+                }
+                this.saveCheckedState();
+                this.updateProgress();
+                this.applyFilters();
+            }
+
+            getComplianceStatus(controlId) {
+                return this.complianceStatus.get(controlId)?.status || '';
+            }
+
+            getComment(controlId) {
+                const data = this.complianceStatus.get(controlId);
+                return data?.comments || '';
+            }
+
+            saveComment(controlId, comments) {
+                this.saveComplianceStatus(controlId, null, comments);
+            }
         }
 
         // Global functions
@@ -594,42 +719,48 @@
         }
 
         function exportToExcel() {
-            if (!window.XLSX) {
-                alert('Excel library not loaded. Please check your internet connection.');
-                return;
-            }
+            try {
+                if (!window.XLSX) {
+                    alert('Excel library not loaded. Please check your internet connection.');
+                    return;
+                }
 
-            if (!window.app) {
-                alert('App not initialized');
-                return;
-            }
+                if (!window.app) {
+                    alert('App not initialized');
+                    return;
+                }
 
-            const controls = window.app.currentControls;
-            const checkedItems = window.app.checkedItems;
+                const controls = window.app.currentControls;
+                const checkedItems = window.app.checkedItems;
 
-            const exportData = controls.map(control => ({
-                'Control ID': control.id,
-                'Control Title': control.title,
-                'Type': control.type === 'cloud-specific' ? 'Cloud-Specific' : 'Enhanced ISO 27002',
-                'Category': control.category.charAt(0).toUpperCase() + control.category.slice(1),
-                'Applies To': control.appliesTo === 'both' ? 'Both' : 
-                             control.appliesTo === 'provider' ? 'Cloud Provider' : 'Cloud Customer',
-                'Status': checkedItems.has(control.id) ? '✅ Implemented' : '❌ Not Implemented',
-                'Description': control.description,
-                'Implementation Steps': control.implementation,
-                'Best Practice Guidance': control.guidance,
-                'Required Evidence': control.evidence
-            }));
+                if (!controls || controls.length === 0) {
+                    alert('No controls to export. Please ensure controls are loaded.');
+                    return;
+                }
 
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            ws['!cols'] = [
-                { wch: 12 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, 
-                { wch: 15 }, { wch: 15 }, { wch: 60 }, { wch: 60 }, 
-                { wch: 60 }, { wch: 60 }
-            ];
+                const exportData = controls.map(control => ({
+                    'Control ID': control.id,
+                    'Control Title': control.title,
+                    'Type': control.type === 'cloud-specific' ? 'Cloud-Specific' : 'Enhanced ISO 27002',
+                    'Category': control.category.charAt(0).toUpperCase() + control.category.slice(1),
+                    'Applies To': control.appliesTo === 'both' ? 'Both' : 
+                                 control.appliesTo === 'provider' ? 'Cloud Provider' : 'Cloud Customer',
+                    'Status': checkedItems.has(control.id) ? '✅ Implemented' : '❌ Not Implemented',
+                    'Description': control.description,
+                    'Implementation Steps': control.implementation,
+                    'Best Practice Guidance': control.guidance,
+                    'Required Evidence': control.evidence
+                }));
 
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'ISO 27017 Checklist');
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                ws['!cols'] = [
+                    { wch: 12 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, 
+                    { wch: 15 }, { wch: 15 }, { wch: 60 }, { wch: 60 }, 
+                    { wch: 60 }, { wch: 60 }
+                ];
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'ISO 27017 Checklist');
 
             const total = window.app.allControls.length;
             const implemented = checkedItems.size;
@@ -673,11 +804,20 @@
             summaryWs['!cols'] = [{ wch: 30 }, { wch: 20 }];
             XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 
-            const timestamp = new Date().toISOString().slice(0, 10);
-            const filename = `ISO27017_Checklist_${timestamp}.xlsx`;
+                const timestamp = new Date().toISOString().slice(0, 10);
+                const filename = `ISO27017_Checklist_${timestamp}.xlsx`;
 
-            XLSX.writeFile(wb, filename);
-            alert(`✅ Checklist exported successfully!\n\nFile: ${filename}\nControls: ${controls.length}\nImplemented: ${implemented} (${percentage}%)`);
+                XLSX.writeFile(wb, filename);
+                
+                if (window.app && window.app.closeExportDialog) {
+                    window.app.closeExportDialog();
+                }
+                
+                alert(`✅ Checklist exported successfully!\n\nFile: ${filename}\nControls: ${controls.length}\nImplemented: ${implemented} (${percentage}%)`);
+            } catch (error) {
+                console.error('Excel export error:', error);
+                alert('Failed to export Excel report. See console for details.');
+            }
         }
 
         // Initialize app
