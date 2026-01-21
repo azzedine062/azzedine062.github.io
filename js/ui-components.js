@@ -49,35 +49,229 @@ class UIComponents {
     }
 
     /**
-     * Create a control card element
+     * Create a control card element (ENHANCED with collapsible sections)
      * @param {Object} control - Control object
      * @returns {HTMLElement} Control card element
      */
     createControlCard(control) {
         const card = document.createElement('div');
-        card.className = 'control-card';
+        const statusClass = this.getStatusClass(control.id);
+        card.className = `control-card ${statusClass}`;
         card.innerHTML = `
+            ${this.renderStatusIndicator(control.id)}
+            
             <div class="control-header">
                 <div class="control-id">${this.escapeHtml(control.id)}</div>
             </div>
             <div class="control-title">${this.escapeHtml(control.title)}</div>
             
-            <div class="implementation-guide">
-                <h4>📋 Implementation Guidance</h4>
-                <div>${this.escapeHtml(control.implementation)}</div>
-            </div>
+            ${this.renderQuickInfo(control)}
             
-            ${this.renderCloudMappings(control.cloudMappings)}
+            ${this.renderCollapsibleImplementation(control)}
+            ${this.renderCollapsibleCloudTabs(control)}
+            ${this.renderCollapsibleEvidence(control)}
             
-            <div class="audit-evidence">
-                <h4>📊 Audit Evidence Examples</h4>
-                <div class="evidence-list">${this.escapeHtml(control.evidence)}</div>
-            </div>
-            
-            ${this.renderComplianceStatus(control.id)}
+            ${this.renderStatusFooter(control.id)}
         `;
         
+        // Attach tab switching events
+        this.attachTabEvents(card);
+        
         return card;
+    }
+    
+    /**
+     * Render status indicator badge
+     */
+    renderStatusIndicator(controlId) {
+        const status = this.complianceStatus.get(controlId);
+        const statusValue = status ? status.status : '';
+        const statusLabel = this.getStatusLabel(statusValue);
+        
+        return `
+            <div class="control-status-indicator">
+                <span class="status-badge ${statusValue}">${statusLabel}</span>
+            </div>
+        `;
+    }
+    
+    /**
+     * Render quick info pills
+     */
+    renderQuickInfo(control) {
+        return `
+            <div class="section-summary">
+                <div class="quick-info">
+                    <span class="info-pill">📂 ${this.getCategoryLabel(control.category)}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Render collapsible implementation section
+     */
+    renderCollapsibleImplementation(control) {
+        if (!control.implementation) return '';
+        
+        return `
+            <details class="section-collapsible" open>
+                <summary class="section-header">
+                    <span><span class="icon">📋</span><strong>Implementation Guide</strong></span>
+                    <span class="expand-icon">▼</span>
+                </summary>
+                <div class="section-content">
+                    ${this.escapeHtml(control.implementation)}
+                </div>
+            </details>
+        `;
+    }
+    
+    /**
+     * Render collapsible cloud mappings with tabs
+     */
+    renderCollapsibleCloudTabs(control) {
+        if (!control.cloudMappings) return '';
+        
+        const providers = [];
+        if (this.selectedProviders.has('aws') && control.cloudMappings.aws) {
+            providers.push({ key: 'aws', icon: '🔶', name: 'AWS', content: control.cloudMappings.aws });
+        }
+        if (this.selectedProviders.has('azure') && control.cloudMappings.azure) {
+            providers.push({ key: 'azure', icon: '🔷', name: 'Azure', content: control.cloudMappings.azure });
+        }
+        if (this.selectedProviders.has('gcp') && control.cloudMappings.gcp) {
+            providers.push({ key: 'gcp', icon: '🔵', name: 'GCP', content: control.cloudMappings.gcp });
+        }
+        
+        if (providers.length === 0) return '';
+        
+        const tabsHTML = providers.map((p, idx) => `
+            <button class="tab ${idx === 0 ? 'active' : ''}" data-tab="${p.key}">
+                <span class="provider-icon">${p.icon}</span> ${p.name}
+            </button>
+        `).join('');
+        
+        const contentHTML = providers.map((p, idx) => `
+            <div class="cloud-content" data-content="${p.key}" ${idx === 0 ? '' : 'hidden'}>
+                ${this.escapeHtml(p.content)}
+            </div>
+        `).join('');
+        
+        return `
+            <details class="section-collapsible" open>
+                <summary class="section-header">
+                    <span><span class="icon">☁️</span><strong>Cloud Implementation</strong></span>
+                    <span class="expand-icon">▼</span>
+                </summary>
+                <div class="section-content">
+                    <div class="cloud-tabs">
+                        ${tabsHTML}
+                    </div>
+                    ${contentHTML}
+                </div>
+            </details>
+        `;
+    }
+    
+    /**
+     * Render collapsible evidence section
+     */
+    renderCollapsibleEvidence(control) {
+        if (!control.evidence) return '';
+        
+        return `
+            <details class="section-collapsible">
+                <summary class="section-header">
+                    <span><span class="icon">📊</span><strong>Audit Evidence</strong></span>
+                    <span class="expand-icon">▼</span>
+                </summary>
+                <div class="section-content">
+                    ${this.escapeHtml(control.evidence)}
+                </div>
+            </details>
+        `;
+    }
+    
+    /**
+     * Render status footer with dropdown
+     */
+    renderStatusFooter(controlId) {
+        const status = this.complianceStatus.get(controlId) || { status: '', comments: '' };
+        
+        return `
+            <div class="control-footer">
+                <select class="status-dropdown" id="status-${this.escapeHtml(controlId)}" data-control-id="${this.escapeHtml(controlId)}">
+                    <option value="">Select Status</option>
+                    <option value="implemented" ${status.status === 'implemented' ? 'selected' : ''}>✅ Implemented</option>
+                    <option value="in-progress" ${status.status === 'in-progress' ? 'selected' : ''}>⚡ In Progress</option>
+                    <option value="not-implemented" ${status.status === 'not-implemented' ? 'selected' : ''}>⬜ Not Implemented</option>
+                    <option value="not-applicable" ${status.status === 'not-applicable' ? 'selected' : ''}>➖ Not Applicable</option>
+                </select>
+            </div>
+        `;
+    }
+    
+    /**
+     * Attach tab switching events to card
+     */
+    attachTabEvents(card) {
+        const tabs = card.querySelectorAll('.cloud-tabs .tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabKey = e.currentTarget.dataset.tab;
+                const parent = e.currentTarget.closest('.section-content');
+                
+                // Update active tab
+                parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                
+                // Show corresponding content
+                parent.querySelectorAll('.cloud-content').forEach(content => {
+                    content.hidden = content.dataset.content !== tabKey;
+                });
+            });
+        });
+    }
+    
+    /**
+     * Get status class for card styling
+     */
+    getStatusClass(controlId) {
+        const status = this.complianceStatus.get(controlId);
+        if (!status || !status.status) return 'status-not-started';
+        return `status-${status.status}`;
+    }
+    
+    /**
+     * Get status label
+     */
+    getStatusLabel(status) {
+        const labels = {
+            'implemented': '✅ Implemented',
+            'in-progress': '⚡ In Progress',
+            'partial': '⚡ In Progress',
+            'not-implemented': '⬜ Not Started',
+            'not-applicable': '➖ Not Applicable',
+            '': '⬜ Not Started'
+        };
+        return labels[status] || '⬜ Not Started';
+    }
+    
+    /**
+     * Get category label
+     */
+    getCategoryLabel(category) {
+        const labels = {
+            '5': 'Organizational',
+            '6': 'People',
+            '7': 'Physical',
+            '8': 'Technological',
+            'organizational': 'Organizational',
+            'technical': 'Technical',
+            'operational': 'Operational'
+        };
+        return labels[category] || category;
     }
 
     /**

@@ -37,6 +37,38 @@
             </div>
         </section>
         
+        <!-- ENHANCED PROGRESS SECTION -->
+        <section class="progress-bar-container">
+            <h3 style="margin-bottom: 15px;">📊 Compliance Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            <div class="stats-container" id="statsContainer">
+                <!-- Stats will be injected here -->
+            </div>
+        </section>
+        
+        <!-- VIEW CONTROLS -->
+        <section class="view-controls-section">
+            <div class="view-modes">
+                <h3>👁️ View Mode</h3>
+                <div class="view-buttons">
+                    <button class="view-btn active" data-view="cards" title="Card View">
+                        <span class="view-icon">🗂️</span> Cards
+                    </button>
+                    <button class="view-btn" data-view="list" title="List View">
+                        <span class="view-icon">📋</span> List
+                    </button>
+                    <button class="view-btn" data-view="checklist" title="Checklist View">
+                        <span class="view-icon">☑️</span> Checklist
+                    </button>
+                    <button class="view-btn" data-view="kanban" title="Kanban Board">
+                        <span class="view-icon">📊</span> Kanban
+                    </button>
+                </div>
+            </div>
+        </section>
+        
         <section class="filter-section">
             <h3>🔍 Filter & Export Controls</h3>
             <div class="filter-controls">
@@ -48,9 +80,26 @@
                     <option value="7">7 - Physical</option>
                     <option value="8">8 - Technological</option>
                 </select>
-                <button class="export-btn" onclick="exportToExcel()">📊 Export to Excel</button>
-                <button class="reset-btn" onclick="resetFilters()">🔄 Reset</button>
+                <select id="statusFilter">
+                    <option value="">All Statuses</option>
+                    <option value="implemented">✅ Implemented</option>
+                    <option value="in-progress">⚡ In Progress</option>
+                    <option value="not-implemented">⬜ Not Started</option>
+                    <option value="not-applicable">➖ Not Applicable</option>
+                </select>
+                <button class="export-btn" onclick="window.app?.showExportDialog()">📊 Export Report</button>
+                <button class="reset-btn" onclick="window.app?.resetFilters()">🔄 Reset</button>
                 <a href="index.html" class="action-btn secondary-btn">⬅️ Back to Frameworks</a>
+            </div>
+            
+            <!-- FILTER CHIPS -->
+            <div class="filter-chips-container" id="filterChips">
+                <!-- Dynamic filter chips will be rendered here -->
+            </div>
+            
+            <!-- ACTIVE FILTERS -->
+            <div class="active-filters-container" id="activeFilters" hidden>
+                <!-- Active filters will be rendered here -->
             </div>
         </section>
         
@@ -65,9 +114,78 @@
             <p>Loading controls...</p>
         </div>
     </div>
+    
+    <!-- EXPORT DIALOG -->
+    <div class="export-dialog" id="exportDialog" hidden>
+        <div class="export-dialog-content">
+            <div class="export-header">
+                <h2>📊 Export Compliance Report</h2>
+                <button class="close-btn" onclick="window.app?.closeExportDialog()">×</button>
+            </div>
+            
+            <div class="export-body">
+                <h3>Export Options</h3>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optExecSummary" checked>
+                        Include Executive Summary
+                    </label>
+                </div>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optProgressCharts" checked>
+                        Include Progress Charts
+                    </label>
+                </div>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optImplementation" checked>
+                        Include Implementation Guides
+                    </label>
+                </div>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optCloudMappings" checked>
+                        Include Cloud Mappings
+                    </label>
+                </div>
+                
+                <h3>Controls to Export</h3>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="all" checked>
+                        All Controls
+                    </label>
+                </div>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="filtered">
+                        Currently Filtered Controls Only
+                    </label>
+                </div>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="implemented">
+                        Implemented Controls Only
+                    </label>
+                </div>
+            </div>
+            
+            <div class="export-footer">
+                <button class="btn secondary-btn" onclick="window.app?.closeExportDialog()">Cancel</button>
+                <button class="btn export-btn" onclick="window.app?.exportToExcel()">📊 Excel</button>
+                <button class="btn export-btn" onclick="window.app?.exportToPDF()">📄 PDF</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- XLSX Library -->
+    <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Data Files - ORIGINAL ORDER -->
     <script src="data/base-controls.js"></script>
@@ -76,46 +194,57 @@
     <script src="data/gcp-controls.js"></script>
     <script src="data/controls-data.js"></script>
     
-    <!-- SIMPLIFIED APP - All in One -->
+    <!-- App Initialization - Simplified Version -->
     <script>
-        console.log('🚀 Starting app initialization...');
+        console.log('🚀 Starting ISO27002 app initialization...');
         
-        // Simple App - No dependencies
-        class SimpleApp {
+        // Simplified App for ISO27002
+        class SimpleISO27002App {
             constructor() {
-                this.selectedProviders = new Set(['aws', 'azure', 'gcp']);
                 this.allControls = [];
                 this.currentControls = [];
+                this.selectedProviders = new Set(['aws', 'azure', 'gcp']);
+                this.complianceStatus = new Map();
+                this.currentView = 'cards';
                 this.filters = {
                     search: '',
-                    category: ''
+                    category: '',
+                    status: ''
                 };
+                this.loadComplianceStatus();
             }
 
-            init() {
-                console.log('📋 Initializing SimpleApp...');
-                
-                // Check if controls are loaded
-                if (!window.ISO27002_CONTROLS) {
-                    console.error('❌ Controls not loaded!');
-                    this.showError('Controls data not loaded. Check console for details.');
-                    return;
+            async init() {
+                try {
+                    // Check if controls are loaded
+                    if (!window.ISO27002_CONTROLS) {
+                        throw new Error('Controls data not loaded');
+                    }
+
+                    this.allControls = window.ISO27002_CONTROLS;
+                    console.log('✅ Loaded', this.allControls.length, 'controls');
+
+                    // Bind events
+                    this.bindEvents();
+                    this.initViewModes();
+
+                    // Initial render
+                    this.applyFilters();
+                    this.updateProgress();
+
+                    // Update status
+                    document.getElementById('statusIndicator').textContent = '✅';
+                    document.getElementById('statusText').textContent = `Ready - ${this.allControls.length} controls loaded`;
+
+                    // Hide loading spinner
+                    const spinner = document.getElementById('loadingSpinner');
+                    if (spinner) spinner.style.display = 'none';
+
+                    console.log('✅ App initialized successfully!');
+                } catch (error) {
+                    console.error('Init error:', error);
+                    throw error;
                 }
-
-                this.allControls = window.ISO27002_CONTROLS;
-                console.log('✅ Loaded', this.allControls.length, 'controls');
-
-                // Bind events
-                this.bindEvents();
-
-                // Initial render
-                this.applyFilters();
-
-                // Update status
-                document.getElementById('statusIndicator').textContent = '✅';
-                document.getElementById('statusText').textContent = `Ready - ${this.allControls.length} controls loaded`;
-                
-                console.log('✅ App initialized successfully!');
             }
 
             bindEvents() {
@@ -131,68 +260,91 @@
                                 this.selectedProviders.delete(provider);
                             }
                             this.renderControls(this.currentControls);
+                            this.updateProgress();
                         });
                     }
                 });
 
-                // Search
+                // Search and filters
                 const searchInput = document.getElementById('searchInput');
                 if (searchInput) {
-                    searchInput.addEventListener('input', (e) => {
-                        this.filters.search = e.target.value;
+                    searchInput.addEventListener('input', () => {
+                        this.filters.search = searchInput.value;
                         this.applyFilters();
                     });
                 }
 
-                // Category filter
                 const categoryFilter = document.getElementById('categoryFilter');
                 if (categoryFilter) {
-                    categoryFilter.addEventListener('change', (e) => {
-                        this.filters.category = e.target.value;
+                    categoryFilter.addEventListener('change', () => {
+                        this.filters.category = categoryFilter.value;
                         this.applyFilters();
                     });
                 }
 
-                // Compliance status - use event delegation
+                const statusFilter = document.getElementById('statusFilter');
+                if (statusFilter) {
+                    statusFilter.addEventListener('change', () => {
+                        this.filters.status = statusFilter.value;
+                        this.applyFilters();
+                    });
+                }
+
+                // Status dropdowns (event delegation)
                 document.addEventListener('change', (e) => {
-                    if (e.target.matches('select[id^="status-"]')) {
+                    if (e.target.matches('.status-dropdown')) {
                         const controlId = e.target.dataset.controlId;
                         const status = e.target.value;
-                        const commentsInput = document.getElementById(`comments-${controlId}`);
-                        const comments = commentsInput ? commentsInput.value : '';
-                        this.saveComplianceStatus(controlId, status, comments);
+                        this.saveComplianceStatus(controlId, status);
+                        this.updateProgress();
+                        // Update card class
+                        const card = e.target.closest('.control-card');
+                        if (card) {
+                            card.className = `control-card status-${status || 'not-started'}`;
+                        }
                     }
                 });
+            }
 
-                document.addEventListener('input', (e) => {
-                    if (e.target.matches('input[id^="comments-"]')) {
-                        const controlId = e.target.dataset.controlId;
-                        const comments = e.target.value;
-                        const statusSelect = document.getElementById(`status-${controlId}`);
-                        const status = statusSelect ? statusSelect.value : '';
-                        this.saveComplianceStatus(controlId, status, comments);
-                    }
+            initViewModes() {
+                const viewButtons = document.querySelectorAll('.view-btn');
+                viewButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const view = e.currentTarget.dataset.view;
+                        this.switchView(view);
+                    });
                 });
+            }
+
+            switchView(view) {
+                this.currentView = view;
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.view === view);
+                });
+                this.renderControls(this.currentControls);
             }
 
             applyFilters() {
                 let filtered = [...this.allControls];
 
-                // Search filter
                 if (this.filters.search) {
                     const term = this.filters.search.toLowerCase();
-                    filtered = filtered.filter(control => 
+                    filtered = filtered.filter(control =>
                         control.id.toLowerCase().includes(term) ||
                         control.title.toLowerCase().includes(term) ||
                         control.implementation.toLowerCase().includes(term)
                     );
                 }
 
-                // Category filter
                 if (this.filters.category) {
-                    filtered = filtered.filter(control => 
-                        control.category === this.filters.category
-                    );
+                    filtered = filtered.filter(control => control.category === this.filters.category);
+                }
+
+                if (this.filters.status) {
+                    filtered = filtered.filter(control => {
+                        const status = this.complianceStatus.get(control.id);
+                        return status && status.status === this.filters.status;
+                    });
                 }
 
                 this.currentControls = filtered;
@@ -204,6 +356,7 @@
                 if (!grid) return;
 
                 grid.innerHTML = '';
+                grid.className = `controls-grid view-${this.currentView}`;
 
                 controls.forEach(control => {
                     const card = this.createControlCard(control);
@@ -213,270 +366,258 @@
 
             createControlCard(control) {
                 const card = document.createElement('div');
-                card.className = 'control-card';
-                
-                let mappingsHTML = '';
-                
-                if (this.selectedProviders.has('aws')) {
-                    mappingsHTML += `
-                        <div class="cloud-section aws-section">
-                            <h4>🔶 AWS Services</h4>
-                            <div class="service-list">${control.cloudMappings?.aws || 'N/A'}</div>
-                        </div>
-                    `;
+                const status = this.complianceStatus.get(control.id);
+                const statusValue = status ? status.status : '';
+                const statusClass = statusValue ? `status-${statusValue}` : 'status-not-started';
+                card.className = `control-card ${statusClass}`;
+
+                // Get cloud mappings
+                let cloudMappingsHTML = '';
+                const providers = [];
+                if (this.selectedProviders.has('aws') && control.cloudMappings?.aws) {
+                    providers.push({ key: 'aws', icon: '🔶', name: 'AWS', content: control.cloudMappings.aws });
                 }
-                
-                if (this.selectedProviders.has('azure')) {
-                    mappingsHTML += `
-                        <div class="cloud-section azure-section">
-                            <h4>🔷 Azure Services</h4>
-                            <div class="service-list">${control.cloudMappings?.azure || 'N/A'}</div>
-                        </div>
-                    `;
+                if (this.selectedProviders.has('azure') && control.cloudMappings?.azure) {
+                    providers.push({ key: 'azure', icon: '🔷', name: 'Azure', content: control.cloudMappings.azure });
                 }
-                
-                if (this.selectedProviders.has('gcp')) {
-                    mappingsHTML += `
-                        <div class="cloud-section gcp-section">
-                            <h4>🔵 Google Cloud Services</h4>
-                            <div class="service-list">${control.cloudMappings?.gcp || 'N/A'}</div>
-                        </div>
-                    `;
+                if (this.selectedProviders.has('gcp') && control.cloudMappings?.gcp) {
+                    providers.push({ key: 'gcp', icon: '🔵', name: 'GCP', content: control.cloudMappings.gcp });
                 }
 
-                const gridClass = this.selectedProviders.size === 1 ? 'single-provider' : 
-                                  this.selectedProviders.size === 2 ? 'two-providers' : 'three-providers';
+                if (providers.length > 0) {
+                    const tabsHTML = providers.map((p, idx) => `
+                        <button class="tab ${idx === 0 ? 'active' : ''}" data-tab="${p.key}" onclick="window.app.switchTab(event, '${p.key}')">
+                            <span class="provider-icon">${p.icon}</span> ${p.name}
+                        </button>
+                    `).join('');
 
-                // Get saved status
-                const savedStatus = this.getComplianceStatus(control.id);
+                    const contentHTML = providers.map((p, idx) => `
+                        <div class="cloud-content" data-content="${p.key}" ${idx === 0 ? '' : 'hidden'}>${this.escapeHtml(p.content)}</div>
+                    `).join('');
+
+                    cloudMappingsHTML = `
+                        <details class="section-collapsible" open>
+                            <summary class="section-header">
+                                <span><span class="icon">☁️</span><strong>Cloud Implementation</strong></span>
+                                <span class="expand-icon">▼</span>
+                            </summary>
+                            <div class="section-content">
+                                <div class="cloud-tabs">${tabsHTML}</div>
+                                ${contentHTML}
+                            </div>
+                        </details>
+                    `;
+                }
 
                 card.innerHTML = `
+                    <div class="control-status-indicator">
+                        <span class="status-badge ${statusValue || 'not-started'}">${this.getStatusLabel(statusValue)}</span>
+                    </div>
+                    
                     <div class="control-header">
-                        <div class="control-id">${control.id}</div>
+                        <div class="control-id">${this.escapeHtml(control.id)}</div>
                     </div>
-                    <div class="control-title">${control.title}</div>
+                    <div class="control-title">${this.escapeHtml(control.title)}</div>
                     
-                    <div class="implementation-guide">
-                        <h4>📋 Implementation Guidance</h4>
-                        <div>${control.implementation}</div>
-                    </div>
+                    <details class="section-collapsible" open>
+                        <summary class="section-header">
+                            <span><span class="icon">📋</span><strong>Implementation Guide</strong></span>
+                            <span class="expand-icon">▼</span>
+                        </summary>
+                        <div class="section-content">${this.escapeHtml(control.implementation)}</div>
+                    </details>
                     
-                    <div class="cloud-mappings ${gridClass}">
-                        ${mappingsHTML}
-                    </div>
+                    ${cloudMappingsHTML}
                     
-                    <div class="audit-evidence">
-                        <h4>📊 Audit Evidence Examples</h4>
-                        <div class="evidence-list">${control.evidence}</div>
-                    </div>
+                    <details class="section-collapsible">
+                        <summary class="section-header">
+                            <span><span class="icon">📊</span><strong>Audit Evidence</strong></span>
+                            <span class="expand-icon">▼</span>
+                        </summary>
+                        <div class="section-content">${this.escapeHtml(control.evidence)}</div>
+                    </details>
                     
-                    <div class="compliance-status">
-                        <select id="status-${control.id}" data-control-id="${control.id}">
+                    <div class="control-footer">
+                        <select class="status-dropdown" data-control-id="${this.escapeHtml(control.id)}">
                             <option value="">Select Status</option>
-                            <option value="implemented" ${savedStatus.status === 'implemented' ? 'selected' : ''}>✅ Implemented</option>
-                            <option value="partial" ${savedStatus.status === 'partial' ? 'selected' : ''}>⚠️ Partially Implemented</option>
-                            <option value="not-implemented" ${savedStatus.status === 'not-implemented' ? 'selected' : ''}>❌ Not Implemented</option>
-                            <option value="not-applicable" ${savedStatus.status === 'not-applicable' ? 'selected' : ''}>➖ Not Applicable</option>
+                            <option value="implemented" ${statusValue === 'implemented' ? 'selected' : ''}>✅ Implemented</option>
+                            <option value="in-progress" ${statusValue === 'in-progress' ? 'selected' : ''}>⚡ In Progress</option>
+                            <option value="not-implemented" ${statusValue === 'not-implemented' ? 'selected' : ''}>⬜ Not Implemented</option>
+                            <option value="not-applicable" ${statusValue === 'not-applicable' ? 'selected' : ''}>➖ Not Applicable</option>
                         </select>
-                        <input type="text" 
-                               id="comments-${control.id}" 
-                               data-control-id="${control.id}"
-                               placeholder="Add audit comments/notes..." 
-                               value="${savedStatus.comments}">
                     </div>
                 `;
-                
+
                 return card;
             }
 
-            getComplianceStatus(controlId) {
+            switchTab(event, tabKey) {
+                event.preventDefault();
+                const parent = event.target.closest('.section-content');
+                parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                event.target.closest('.tab').classList.add('active');
+                parent.querySelectorAll('.cloud-content').forEach(content => {
+                    content.hidden = content.dataset.content !== tabKey;
+                });
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text || '';
+                return div.innerHTML;
+            }
+
+            getStatusLabel(status) {
+                const labels = {
+                    'implemented': '✅ Implemented',
+                    'in-progress': '⚡ In Progress',
+                    'not-implemented': '⬜ Not Started',
+                    'not-applicable': '➖ Not Applicable',
+                    '': '⬜ Not Started'
+                };
+                return labels[status] || '⬜ Not Started';
+            }
+
+            loadComplianceStatus() {
                 try {
                     const saved = localStorage.getItem('iso27002-compliance-status');
                     if (saved) {
-                        const statusData = JSON.parse(saved);
-                        return statusData[controlId] || { status: '', comments: '' };
+                        const data = JSON.parse(saved);
+                        this.complianceStatus = new Map(Object.entries(data));
                     }
                 } catch (e) {
                     console.warn('Could not load compliance status:', e);
                 }
-                return { status: '', comments: '' };
             }
 
-            saveComplianceStatus(controlId, status, comments) {
-                try {
-                    const saved = localStorage.getItem('iso27002-compliance-status');
-                    const statusData = saved ? JSON.parse(saved) : {};
-                    statusData[controlId] = { status, comments };
-                    localStorage.setItem('iso27002-compliance-status', JSON.stringify(statusData));
-                } catch (e) {
-                    console.warn('Could not save compliance status:', e);
-                }
+            saveComplianceStatus(controlId, status) {
+                this.complianceStatus.set(controlId, { status, comments: '' });
+                const data = Object.fromEntries(this.complianceStatus);
+                localStorage.setItem('iso27002-compliance-status', JSON.stringify(data));
             }
 
-            showError(message) {
-                alert(message);
-                document.getElementById('statusIndicator').textContent = '❌';
-                document.getElementById('statusText').textContent = 'Error';
-            }
-        }
+            updateProgress() {
+                const progressFill = document.getElementById('progressFill');
+                const statsContainer = document.getElementById('statsContainer');
+                
+                if (!progressFill || !statsContainer) return;
 
-        // Global functions
-        function exportToExcel() {
-            if (!window.XLSX) {
-                alert('Excel library not loaded. Please check your internet connection.');
-                return;
-            }
+                const total = this.allControls.length;
+                let implemented = 0;
+                let inProgress = 0;
+                let notImplemented = 0;
 
-            if (!window.app) {
-                alert('App not initialized');
-                return;
-            }
-
-            const controls = window.app.currentControls;
-            const selectedProviders = Array.from(window.app.selectedProviders);
-
-            // Prepare export data
-            const exportData = controls.map(control => {
-                const row = {
-                    'Control ID': control.id,
-                    'Control Title': control.title,
-                    'Category': getCategoryLabel(control.category),
-                    'Implementation Guidance': control.implementation,
-                    'Audit Evidence': control.evidence
-                };
-
-                // Add cloud provider columns
-                selectedProviders.forEach(provider => {
-                    const providerName = provider === 'aws' ? 'AWS' : provider === 'azure' ? 'Azure' : 'Google Cloud';
-                    row[`${providerName} Services`] = control.cloudMappings[provider] || 'N/A';
+                this.allControls.forEach(control => {
+                    const status = this.complianceStatus.get(control.id);
+                    if (status) {
+                        if (status.status === 'implemented') implemented++;
+                        else if (status.status === 'in-progress') inProgress++;
+                        else notImplemented++;
+                    } else {
+                        notImplemented++;
+                    }
                 });
 
-                // Add compliance status
-                const status = window.app.getComplianceStatus(control.id);
-                row['Compliance Status'] = status.status ? getStatusLabel(status.status) : 'Not Set';
-                row['Audit Comments'] = status.comments || '';
+                const percentage = total > 0 ? Math.round((implemented / total) * 100) : 0;
+                progressFill.style.width = percentage + '%';
+                progressFill.textContent = percentage + '%';
 
-                return row;
-            });
-
-            // Create workbook
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'ISO27002 Controls');
-
-            // Create summary sheet
-            const summaryData = [
-                ['ISO 27002:2022 Cloud Controls Audit Report', ''],
-                ['Generated', new Date().toLocaleString()],
-                ['Total Controls', controls.length],
-                ['', ''],
-                ['Compliance Summary', ''],
-            ];
-
-            // Count by status
-            const statusCounts = {};
-            controls.forEach(control => {
-                const status = window.app.getComplianceStatus(control.id);
-                const statusKey = status.status || 'not-set';
-                statusCounts[statusKey] = (statusCounts[statusKey] || 0) + 1;
-            });
-
-            Object.entries(statusCounts).forEach(([status, count]) => {
-                summaryData.push([getStatusLabel(status), count]);
-            });
-
-            // Calculate compliance percentage
-            const implemented = statusCounts['implemented'] || 0;
-            const partial = statusCounts['partial'] || 0;
-            const total = controls.length;
-            const complianceRate = ((implemented + (partial * 0.5)) / total * 100).toFixed(1);
-
-            summaryData.push(['', '']);
-            summaryData.push(['Overall Compliance Rate', `${complianceRate}%`]);
-
-            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-            XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
-
-            // Generate filename
-            const timestamp = new Date().toISOString().slice(0, 10);
-            const filename = `ISO27002_Audit_Report_${timestamp}.xlsx`;
-
-            // Export
-            XLSX.writeFile(wb, filename);
-            alert(`✅ Audit report exported successfully!\n\nFile: ${filename}\nControls: ${controls.length}\nCompliance Rate: ${complianceRate}%`);
-        }
-
-        function getCategoryLabel(category) {
-            const labels = {
-                '5': '5 - Organizational',
-                '6': '6 - People',
-                '7': '7 - Physical',
-                '8': '8 - Technological'
-            };
-            return labels[category] || category;
-        }
-
-        function getStatusLabel(status) {
-            const labels = {
-                'implemented': '✅ Implemented',
-                'partial': '⚠️ Partially Implemented',
-                'not-implemented': '❌ Not Implemented',
-                'not-applicable': '➖ Not Applicable',
-                'not-set': 'Not Set',
-                '': 'Not Set'
-            };
-            return labels[status] || status;
-        }
-
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('categoryFilter').value = '';
-            if (window.app) {
-                window.app.filters = { search: '', category: '' };
-                window.app.applyFilters();
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${total}</div>
+                        <div class="stat-label">Total Controls</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${implemented}</div>
+                        <div class="stat-label">Implemented</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${inProgress}</div>
+                        <div class="stat-label">In Progress</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${notImplemented}</div>
+                        <div class="stat-label">Remaining</div>
+                    </div>
+                `;
             }
-        }
 
-        // Initialize on DOM ready
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('📄 DOM Ready');
-            
-            // Initialize immediately - removed delay
-            try {
-                console.log('🔍 Checking if controls are loaded...');
-                console.log('ISO27002_CONTROLS:', typeof window.ISO27002_CONTROLS);
-                
-                if (!window.ISO27002_CONTROLS) {
-                    console.error('❌ Controls not available!');
-                    console.log('Base controls:', typeof window.ISO27002_BASE_CONTROLS);
-                    console.log('Azure controls:', typeof window.AZURE_CONTROLS_MAPPING);
-                    console.log('AWS controls:', typeof window.AWS_CONTROLS_MAPPING);
-                    console.log('GCP controls:', typeof window.GCP_CONTROLS_MAPPING);
-                    
-                    alert('ERROR: Control data files are not loading. Please check:\n\n1. All files in data/ folder exist\n2. File names are correct\n3. Check browser console (F12) for 404 errors');
+            showExportDialog() {
+                const dialog = document.getElementById('exportDialog');
+                if (dialog) dialog.hidden = false;
+            }
+
+            closeExportDialog() {
+                const dialog = document.getElementById('exportDialog');
+                if (dialog) dialog.hidden = true;
+            }
+
+            exportToExcel() {
+                if (!window.XLSX) {
+                    alert('Excel library not loaded');
                     return;
                 }
-                
-                window.app = new SimpleApp();
-                window.app.init();
-            } catch (error) {
-                console.error('❌ Initialization error:', error);
-                alert('Initialization failed: ' + error.message);
+
+                const data = this.currentControls.map(c => ({
+                    'Control ID': c.id,
+                    'Title': c.title,
+                    'Category': c.category,
+                    'Implementation': c.implementation,
+                    'Evidence': c.evidence,
+                    'AWS': c.cloudMappings?.aws || 'N/A',
+                    'Azure': c.cloudMappings?.azure || 'N/A',
+                    'GCP': c.cloudMappings?.gcp || 'N/A',
+                    'Status': this.complianceStatus.get(c.id)?.status || 'Not Set'
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'ISO27002 Controls');
+
+                const timestamp = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `ISO27002_Audit_Report_${timestamp}.xlsx`);
+                this.closeExportDialog();
             }
-        });
 
-        // Debug helper
-        window.debugApp = function() {
-            console.log('=== APP DEBUG ===');
-            console.log('ISO27002_BASE_CONTROLS:', typeof window.ISO27002_BASE_CONTROLS, window.ISO27002_BASE_CONTROLS?.length);
-            console.log('AZURE_CONTROLS_MAPPING:', typeof window.AZURE_CONTROLS_MAPPING, Object.keys(window.AZURE_CONTROLS_MAPPING || {}).length);
-            console.log('AWS_CONTROLS_MAPPING:', typeof window.AWS_CONTROLS_MAPPING, Object.keys(window.AWS_CONTROLS_MAPPING || {}).length);
-            console.log('GCP_CONTROLS_MAPPING:', typeof window.GCP_CONTROLS_MAPPING, Object.keys(window.GCP_CONTROLS_MAPPING || {}).length);
-            console.log('ISO27002_CONTROLS:', typeof window.ISO27002_CONTROLS, window.ISO27002_CONTROLS?.length);
-            console.log('app:', typeof window.app);
-        };
+            exportToPDF() {
+                alert('PDF export feature will be available soon!');
+                this.closeExportDialog();
+            }
 
-        console.log('💡 Type debugApp() in console to see what loaded');
+            resetFilters() {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('categoryFilter').value = '';
+                const statusFilter = document.getElementById('statusFilter');
+                if (statusFilter) statusFilter.value = '';
+                this.filters = { search: '', category: '', status: '' };
+                this.applyFilters();
+            }
+        }
+
+        // Initialize app
+        async function initApp() {
+            try {
+                if (!window.ISO27002_CONTROLS) {
+                    console.error('❌ Controls not loaded!');
+                    alert('Failed to load ISO 27002 controls. Please refresh the page.');
+                    return;
+                }
+
+                window.app = new SimpleISO27002App();
+                await window.app.init();
+
+            } catch (error) {
+                console.error('❌ Failed to initialize app:', error);
+                alert('Failed to initialize application. Please refresh the page.\n\nError: ' + error.message);
+            }
+        }
+
+        // Start app when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
     </script>
 </body>
 </html>

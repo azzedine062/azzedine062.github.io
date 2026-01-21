@@ -303,10 +303,91 @@ class ExportManager {
     }
 
     /**
-     * Export current view as PDF (requires additional library)
+     * Show export dialog
      */
-    exportToPDF() {
-        this.uiComponents.showErrorMessage('PDF export feature coming soon!');
+    showExportDialog() {
+        const dialog = document.getElementById('exportDialog');
+        if (dialog) {
+            dialog.hidden = false;
+        }
+    }
+    
+    /**
+     * Close export dialog
+     */
+    closeExportDialog() {
+        const dialog = document.getElementById('exportDialog');
+        if (dialog) {
+            dialog.hidden = true;
+        }
+    }
+    
+    /**
+     * Export current view as PDF with jsPDF
+     */
+    async exportToPDF() {
+        try {
+            // Check if jsPDF is available
+            if (!window.jspdf) {
+                this.uiComponents.showErrorMessage('jsPDF library not loaded. PDF export unavailable.');
+                return;
+            }
+            
+            // Get export options
+            const options = this.getExportOptions();
+            
+            // Get progress data if available
+            const progressData = window.app && window.app.progressTracker ? 
+                window.app.progressTracker.getProgressData() : null;
+            
+            // Create PDF generator
+            const framework = this.detectFramework();
+            const pdfGen = new PDFGenerator(
+                this.filterManager.getFilteredControls(),
+                framework,
+                this.uiComponents.getComplianceStatus(),
+                progressData
+            );
+            
+            // Generate PDF
+            const doc = await pdfGen.generateReport(options);
+            
+            // Save PDF
+            const timestamp = new Date().toISOString().slice(0, 10);
+            doc.save(`${framework}-Compliance-Report-${timestamp}.pdf`);
+            
+            this.uiComponents.showSuccessMessage('PDF report generated successfully!');
+            this.closeExportDialog();
+            
+        } catch (error) {
+            console.error('PDF export error:', error);
+            this.uiComponents.showErrorMessage('Failed to generate PDF report. See console for details.');
+        }
+    }
+    
+    /**
+     * Get export options from dialog
+     */
+    getExportOptions() {
+        return {
+            includeExecutiveSummary: document.getElementById('optExecSummary')?.checked !== false,
+            includeProgressCharts: document.getElementById('optProgressCharts')?.checked !== false,
+            includeImplementationGuides: document.getElementById('optImplementation')?.checked !== false,
+            includeCloudMappings: document.getElementById('optCloudMappings')?.checked !== false,
+            controlsFilter: document.querySelector('input[name="controlsFilter"]:checked')?.value || 'all'
+        };
+    }
+    
+    /**
+     * Detect current framework
+     */
+    detectFramework() {
+        const path = window.location.pathname;
+        if (path.includes('iso27001')) return 'ISO27002';
+        if (path.includes('iso27017')) return 'ISO27017';
+        if (path.includes('iso27018')) return 'ISO27018';
+        if (path.includes('csa-ccm')) return 'CSA-CCM';
+        return 'ISO27002';
     }
 
     /**

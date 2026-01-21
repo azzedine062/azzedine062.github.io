@@ -10,6 +10,8 @@ class ISO27002App {
         this.filterManager = null;
         this.exportManager = null;
         this.providerManager = null;
+        this.viewManager = null;
+        this.progressTracker = null;
         this.isInitialized = false;
     }
 
@@ -32,15 +34,26 @@ class ISO27002App {
             this.uiComponents = new UIComponents();
             this.filterManager = new FilterManager(this.uiComponents);
             this.exportManager = new ExportManager(this.uiComponents, this.filterManager);
-
+            this.viewManager = new ViewManager(this.uiComponents);
+            
             // Initialize UI components (without provider binding - ProviderManager handles this)
             this.uiComponents.init();
+            
+            // Initialize view manager
+            this.viewManager.init();
 
             // Load and initialize controls data
             await this.loadControlsData();
+            
+            // Initialize progress tracker after controls are loaded
+            this.progressTracker = new ProgressTracker(this.allControls, this.uiComponents);
+            this.progressTracker.init();
 
             // Connect provider manager to UI updates
             this.connectProviderManager();
+            
+            // Make view manager globally accessible for event handlers
+            window.viewManager = this.viewManager;
 
             // Bind global events (excluding provider checkboxes)
             this.bindGlobalEvents();
@@ -81,6 +94,11 @@ class ISO27002App {
             if (this.filterManager) {
                 this.filterManager.applyFilters();
             }
+            
+            // Update progress tracker
+            if (this.progressTracker) {
+                this.progressTracker.updateProgress();
+            }
         });
     }
 
@@ -95,6 +113,9 @@ class ISO27002App {
             if (!controls || controls.length === 0) {
                 throw new Error('No controls data available');
             }
+            
+            // Store controls reference
+            this.allControls = controls;
 
             // Initialize filter manager with controls
             this.filterManager.init(controls);
@@ -301,7 +322,9 @@ class ISO27002App {
             currentFilters: this.filterManager.getCurrentFilters(),
             filterStats: this.filterManager.getFilterStats(),
             complianceStatusCount: this.uiComponents.getComplianceStatus().size,
-            totalControls: ISO27002_CONTROLS ? ISO27002_CONTROLS.length : 0
+            totalControls: ISO27002_CONTROLS ? ISO27002_CONTROLS.length : 0,
+            currentView: this.viewManager ? this.viewManager.getCurrentView() : 'cards',
+            progressData: this.progressTracker ? this.progressTracker.getProgressData() : null
         };
     }
 

@@ -244,6 +244,24 @@
                 <div class="ccm-stat-label">Azure Mappings</div>
             </div>
         </section>
+        
+        <!-- VIEW CONTROLS -->
+        <section class="view-controls-section">
+            <div class="view-modes">
+                <h3>👁️ View Mode</h3>
+                <div class="view-buttons">
+                    <button class="view-btn active" data-view="cards" title="Card View">
+                        <span class="view-icon">🗂️</span> Cards
+                    </button>
+                    <button class="view-btn" data-view="list" title="List View">
+                        <span class="view-icon">📋</span> List
+                    </button>
+                    <button class="view-btn" data-view="kanban" title="Kanban Board">
+                        <span class="view-icon">📊</span> Kanban
+                    </button>
+                </div>
+            </div>
+        </section>
 
         <!-- Cloud Provider Selection -->
         <section class="cloud-provider-selection">
@@ -291,9 +309,14 @@
                     <option value="TVM">TVM - Threat & Vulnerability Management</option>
                     <option value="UEM">UEM - Universal Endpoint Management</option>
                 </select>
-                <button class="export-btn" onclick="exportToExcel()">📊 Export to Excel</button>
-                <button class="reset-btn" onclick="resetFilters()">🔄 Reset</button>
+                <button class="export-btn" onclick="window.app?.showExportDialog()">📊 Export Report</button>
+                <button class="reset-btn" onclick="window.app?.resetFilters()">🔄 Reset</button>
                 <a href="index.html" class="action-btn secondary-btn">⬅️ Back to Frameworks</a>
+            </div>
+            
+            <!-- FILTER CHIPS -->
+            <div class="filter-chips-container" id="filterChips">
+                <!-- Dynamic filter chips will be rendered here -->
             </div>
         </section>
         
@@ -309,9 +332,78 @@
             <p>Loading CCM controls...</p>
         </div>
     </div>
+    
+    <!-- EXPORT DIALOG -->
+    <div class="export-dialog" id="exportDialog" hidden>
+        <div class="export-dialog-content">
+            <div class="export-header">
+                <h2>📊 Export CCM Compliance Report</h2>
+                <button class="close-btn" onclick="window.app?.closeExportDialog()">×</button>
+            </div>
+            
+            <div class="export-body">
+                <h3>Export Options</h3>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optExecSummary" checked>
+                        Include Executive Summary
+                    </label>
+                </div>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optProgressCharts" checked>
+                        Include Progress Charts
+                    </label>
+                </div>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optImplementation" checked>
+                        Include Control Specifications
+                    </label>
+                </div>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optAzureMappings" checked>
+                        Include Azure Mappings
+                    </label>
+                </div>
+                
+                <h3>Controls to Export</h3>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="all" checked>
+                        All Controls
+                    </label>
+                </div>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="filtered">
+                        Currently Filtered Controls Only
+                    </label>
+                </div>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="implemented">
+                        Implemented Controls Only
+                    </label>
+                </div>
+            </div>
+            
+            <div class="export-footer">
+                <button class="btn secondary-btn" onclick="window.app?.closeExportDialog()">Cancel</button>
+                <button class="btn export-btn" onclick="window.app?.exportToExcel()">📊 Excel</button>
+                <button class="btn export-btn" onclick="window.app?.exportToPDF()">📄 PDF</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- XLSX Library -->
+    <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Data Files -->
     <script src="data/ccm-base-controls.js"></script>
@@ -324,6 +416,7 @@
         class CCMApp {
             constructor() {
                 this.allControls = [];
+                this.currentView = 'cards';
                 this.currentControls = [];
                 this.currentDomain = '';
                 this.complianceStatus = new Map();
@@ -361,6 +454,7 @@
 
                 // Bind events
                 this.bindEvents();
+                this.initViewModes();
 
                 // Initial render
                 this.applyFilters();
@@ -369,6 +463,10 @@
                 document.getElementById('statusIndicator').textContent = '✅';
                 document.getElementById('statusText').textContent = 
                     `Ready - ${this.allControls.length} controls loaded`;
+                
+                // Hide loading spinner
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) spinner.style.display = 'none';
                 
                 console.log('✅ CCM App initialized successfully!');
             }
@@ -558,16 +656,62 @@
             getComment(controlId) {
                 return this.comments.get(controlId) || '';
             }
-        }
-
-        // Export to Excel function
-        function exportToExcel() {
-            if (!window.XLSX) {
-                alert('Excel export library not loaded');
-                return;
+            
+            showExportDialog() {
+                const dialog = document.getElementById('exportDialog');
+                if (dialog) dialog.hidden = false;
             }
+            
+            closeExportDialog() {
+                const dialog = document.getElementById('exportDialog');
+                if (dialog) dialog.hidden = true;
+            }
+            
+            exportToPDF() {
+                if (!window.jspdf) {
+                    alert('PDF library not loaded. Please refresh the page.');
+                    return;
+                }
+                alert('PDF export feature will be available soon!');
+                this.closeExportDialog();
+            }
+            
+            initViewModes() {
+                const viewButtons = document.querySelectorAll('.view-btn');
+                viewButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const view = e.currentTarget.dataset.view;
+                        this.switchView(view);
+                    });
+                });
+            }
+            
+            switchView(view) {
+                this.currentView = view;
+                
+                // Update active button
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.view === view);
+                });
+                
+                // Re-render controls in new view
+                this.renderControls(this.currentControls);
+            }
+            
+            resetFilters() {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('domainFilter').value = '';
+                this.filters = { search: '', domain: '' };
+                this.applyFilters();
+            }
+            
+            exportToExcel() {
+                if (!window.XLSX) {
+                    alert('Excel export library not loaded');
+                    return;
+                }
 
-            const controls = window.app.currentControls;
+                const controls = this.currentControls;
             const data = controls.map(c => ({
                 'Control ID': c.id,
                 'Domain': c.domain,
@@ -578,40 +722,36 @@
                 'Applicability': c.applicability,
                 'Category': c.category,
                 'Azure Services': c.azureMapping,
-                'Compliance Status': window.app.getComplianceStatus(c.id) || 'Not Set',
-                'Auditor Comments': window.app.getComment(c.id) || ''
+                'Compliance Status': this.getComplianceStatus(c.id) || 'Not Set',
+                'Auditor Comments': this.getComment(c.id) || ''
             }));
 
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'CCM Controls');
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'CCM Controls');
 
-            // Auto-size columns
-            const maxWidth = 50;
-            const wscols = [
-                { wch: 10 },  // Control ID
-                { wch: 8 },   // Domain
-                { wch: 30 },  // Domain Name
-                { wch: 40 },  // Title
-                { wch: maxWidth },  // Description
-                { wch: maxWidth },  // Control Specification
-                { wch: 20 },  // Applicability
-                { wch: 15 },  // Category
-                { wch: maxWidth },  // Azure Services
-                { wch: 20 },  // Compliance Status
-                { wch: maxWidth }   // Auditor Comments
-            ];
-            ws['!cols'] = wscols;
+                // Auto-size columns
+                const maxWidth = 50;
+                const wscols = [
+                    { wch: 10 },  // Control ID
+                    { wch: 8 },   // Domain
+                    { wch: 30 },  // Domain Name
+                    { wch: 40 },  // Title
+                    { wch: maxWidth },  // Description
+                    { wch: maxWidth },  // Control Specification
+                    { wch: 20 },  // Applicability
+                    { wch: 15 },  // Category
+                    { wch: maxWidth },  // Azure Services
+                    { wch: 20 },  // Compliance Status
+                    { wch: maxWidth }   // Auditor Comments
+                ];
+                ws['!cols'] = wscols;
 
-            const timestamp = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `CSA_CCM_v4_Azure_Audit_Report_${timestamp}.xlsx`);
-        }
-
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('domainFilter').value = '';
-            window.app.filters = { search: '', domain: '' };
-            window.app.applyFilters();
+                const timestamp = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `CSA_CCM_v4_Azure_Audit_Report_${timestamp}.xlsx`);
+                
+                this.closeExportDialog();
+            }
         }
 
         // Initialize app when DOM is ready

@@ -45,9 +45,27 @@
             </div>
         </section>
 
+        <!-- VIEW CONTROLS -->
+        <section class="view-controls-section">
+            <div class="view-modes">
+                <h3>👁️ View Mode</h3>
+                <div class="view-buttons">
+                    <button class="view-btn" data-view="cards" title="Card View">
+                        <span class="view-icon">🗂️</span> Cards
+                    </button>
+                    <button class="view-btn active" data-view="checklist" title="Checklist View">
+                        <span class="view-icon">☑️</span> Checklist
+                    </button>
+                    <button class="view-btn" data-view="kanban" title="Kanban Board">
+                        <span class="view-icon">📊</span> Kanban
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <!-- Action Buttons -->
         <section class="action-buttons">
-            <button class="action-btn primary-btn" onclick="exportToExcel()">📊 Export Checklist</button>
+            <button class="action-btn primary-btn" onclick="window.app?.showExportDialog()">📊 Export Report</button>
             <button class="action-btn secondary-btn" onclick="checkAll()">✅ Check All</button>
             <button class="action-btn secondary-btn" onclick="uncheckAll()">⬜ Uncheck All</button>
             <button class="action-btn secondary-btn" onclick="resetProgress()">🔄 Reset Progress</button>
@@ -77,6 +95,11 @@
                     <option value="both">Both</option>
                 </select>
             </div>
+            
+            <!-- FILTER CHIPS -->
+            <div class="filter-chips-container" id="filterChips">
+                <!-- Dynamic filter chips will be rendered here -->
+            </div>
         </section>
 
         <!-- Controls Container -->
@@ -86,12 +109,74 @@
             </div>
         </section>
     </div>
+    
+    <!-- EXPORT DIALOG -->
+    <div class="export-dialog" id="exportDialog" hidden>
+        <div class="export-dialog-content">
+            <div class="export-header">
+                <h2>📊 Export Compliance Report</h2>
+                <button class="close-btn" onclick="window.app?.closeExportDialog()">×</button>
+            </div>
+            
+            <div class="export-body">
+                <h3>Export Options</h3>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optExecSummary" checked>
+                        Include Executive Summary
+                    </label>
+                </div>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optProgressCharts" checked>
+                        Include Progress Charts
+                    </label>
+                </div>
+                
+                <div class="export-option">
+                    <label>
+                        <input type="checkbox" id="optImplementation" checked>
+                        Include Implementation Guides
+                    </label>
+                </div>
+                
+                <h3>Controls to Export</h3>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="all" checked>
+                        All Controls
+                    </label>
+                </div>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="filtered">
+                        Currently Filtered Controls Only
+                    </label>
+                </div>
+                <div class="export-option">
+                    <label>
+                        <input type="radio" name="controlsFilter" value="implemented">
+                        Implemented Controls Only
+                    </label>
+                </div>
+            </div>
+            
+            <div class="export-footer">
+                <button class="btn secondary-btn" onclick="window.app?.closeExportDialog()">Cancel</button>
+                <button class="btn export-btn" onclick="window.app?.exportToExcel()">📊 Excel</button>
+                <button class="btn export-btn" onclick="window.app?.exportToPDF()">📄 PDF</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <!-- Data File -->
     <script src="data/iso27017-controls.js"></script>
-    
-    <!-- XLSX Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Application Logic -->
     <script>
@@ -100,6 +185,7 @@
                 this.allControls = [];
                 this.currentControls = [];
                 this.checkedItems = new Set();
+                this.currentView = 'checklist';
                 this.filters = {
                     search: '',
                     category: '',
@@ -107,6 +193,25 @@
                     appliesTo: ''
                 };
                 this.loadCheckedState();
+            }
+            
+            showExportDialog() {
+                const dialog = document.getElementById('exportDialog');
+                if (dialog) dialog.hidden = false;
+            }
+            
+            closeExportDialog() {
+                const dialog = document.getElementById('exportDialog');
+                if (dialog) dialog.hidden = true;
+            }
+            
+            exportToPDF() {
+                if (!window.jspdf) {
+                    alert('PDF library not loaded. Please refresh the page.');
+                    return;
+                }
+                alert('PDF export feature will be available soon!');
+                this.closeExportDialog();
             }
 
             init() {
@@ -119,11 +224,34 @@
                 console.log('✅ Loaded', this.allControls.length, 'ISO 27017 controls');
 
                 this.bindEvents();
+                this.initViewModes();
                 this.applyFilters();
                 this.updateProgress();
 
                 document.getElementById('statusIndicator').textContent = '✅';
                 document.getElementById('statusText').textContent = `Ready - ${this.allControls.length} controls loaded`;
+            }
+            
+            initViewModes() {
+                const viewButtons = document.querySelectorAll('.view-btn');
+                viewButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const view = e.currentTarget.dataset.view;
+                        this.switchView(view);
+                    });
+                });
+            }
+            
+            switchView(view) {
+                this.currentView = view;
+                
+                // Update active button
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.view === view);
+                });
+                
+                // Re-render controls in new view
+                this.renderControls(this.currentControls);
             }
 
             bindEvents() {
@@ -150,6 +278,28 @@
                 document.addEventListener('change', (e) => {
                     if (e.target.matches('.checklist-checkbox')) {
                         this.handleCheckboxChange(e.target);
+                    }
+                    
+                    // Status dropdown handler
+                    if (e.target.matches('.status-dropdown')) {
+                        const controlId = e.target.dataset.controlId;
+                        const status = e.target.value;
+                        
+                        // Update the checked state based on status
+                        if (status === 'implemented') {
+                            this.checkedItems.add(controlId);
+                        } else if (status === 'not-implemented' || status === '') {
+                            this.checkedItems.delete(controlId);
+                        }
+                        
+                        this.saveCheckedState();
+                        this.updateProgress();
+                        
+                        // Update card appearance
+                        const card = e.target.closest('.control-card');
+                        if (card) {
+                            card.className = `control-card status-${status || 'not-started'}`;
+                        }
                     }
                 });
             }
@@ -186,6 +336,9 @@
             renderControls(controls) {
                 const grid = document.getElementById('controlsGrid');
                 grid.innerHTML = '';
+                
+                // Apply view-specific class
+                grid.className = `controls-grid view-${this.currentView}`;
 
                 controls.forEach(control => {
                     const card = this.createControlCard(control);
@@ -195,10 +348,11 @@
 
             createControlCard(control) {
                 const card = document.createElement('div');
-                card.className = 'control-card';
-
                 const isChecked = this.checkedItems.has(control.id);
-                const checkedClass = isChecked ? 'checked' : '';
+                
+                // Determine card class based on view and status
+                const statusClass = isChecked ? 'status-implemented' : 'status-not-implemented';
+                card.className = `control-card ${statusClass}`;
 
                 const typeLabel = control.type === 'cloud-specific' ? '☁️ Cloud-Specific' : '📋 Enhanced ISO 27002';
                 const typeClass = control.type;
@@ -208,7 +362,20 @@
                 const appliesToLabel = control.appliesTo === 'provider' ? 'Cloud Provider' :
                                       control.appliesTo === 'customer' ? 'Cloud Customer' : 'Both';
 
-                card.innerHTML = `
+                // Render based on current view
+                if (this.currentView === 'kanban') {
+                    card.innerHTML = this.renderKanbanCard(control, isChecked, typeLabel, typeClass, appliesToIcon, appliesToLabel);
+                } else if (this.currentView === 'cards') {
+                    card.innerHTML = this.renderCardView(control, isChecked, typeLabel, typeClass, appliesToIcon, appliesToLabel);
+                } else {
+                    card.innerHTML = this.renderChecklistView(control, isChecked, typeLabel, typeClass, appliesToIcon, appliesToLabel);
+                }
+
+                return card;
+            }
+            
+            renderChecklistView(control, isChecked, typeLabel, typeClass, appliesToIcon, appliesToLabel) {
+                return `
                     <div class="control-header">
                         <div class="control-id">${control.id}</div>
                         <div class="control-header-badges">
@@ -218,7 +385,7 @@
                     </div>
                     <div class="control-title">${control.title}</div>
 
-                    <div class="checklist-item ${checkedClass}">
+                    <div class="checklist-item ${isChecked ? 'checked' : ''}">
                         <input type="checkbox" 
                                class="checklist-checkbox" 
                                data-control-id="${control.id}"
@@ -227,24 +394,119 @@
                             <strong class="checklist-text">📝 ${control.description}</strong>
                         </div>
                     </div>
-
-                    <div class="implementation-guide">
-                        <h4>🔧 Implementation Steps</h4>
-                        <div>${control.implementation}</div>
+                    
+                    <div class="control-footer">
+                        <select class="status-dropdown" data-control-id="${control.id}">
+                            <option value="">Select Status</option>
+                            <option value="implemented" ${isChecked ? 'selected' : ''}>✅ Implemented</option>
+                            <option value="in-progress">⚡ In Progress</option>
+                            <option value="not-implemented" ${!isChecked ? 'selected' : ''}>⬜ Not Implemented</option>
+                            <option value="not-applicable">➖ Not Applicable</option>
+                        </select>
                     </div>
 
-                    <div class="guidance-section">
-                        <h4>💡 Best Practice Guidance</h4>
-                        <div>${control.guidance}</div>
+                    <details class="section-collapsible">
+                        <summary class="section-header">
+                            <span><span class="icon">🔧</span><strong>Implementation Steps</strong></span>
+                            <span class="expand-icon">▼</span>
+                        </summary>
+                        <div class="section-content">${control.implementation}</div>
+                    </details>
+
+                    <details class="section-collapsible">
+                        <summary class="section-header">
+                            <span><span class="icon">💡</span><strong>Best Practice Guidance</strong></span>
+                            <span class="expand-icon">▼</span>
+                        </summary>
+                        <div class="section-content">${control.guidance}</div>
+                    </details>
+
+                    <details class="section-collapsible">
+                        <summary class="section-header">
+                            <span><span class="icon">📊</span><strong>Required Evidence</strong></span>
+                            <span class="expand-icon">▼</span>
+                        </summary>
+                        <div class="section-content">${control.evidence}</div>
+                    </details>
+                `;
+            }
+            
+            renderCardView(control, isChecked, typeLabel, typeClass, appliesToIcon, appliesToLabel) {
+                return `
+                    <div class="control-status-indicator">
+                        <span class="status-badge ${isChecked ? 'implemented' : 'not-implemented'}">
+                            ${isChecked ? '✅ Implemented' : '⬜ Not Started'}
+                        </span>
+                    </div>
+                    
+                    <div class="control-header">
+                        <div class="control-id">${control.id}</div>
+                        <div class="control-header-badges">
+                            <span class="control-type-badge ${typeClass}">${typeLabel}</span>
+                            <span class="applies-to">${appliesToIcon} ${appliesToLabel}</span>
+                        </div>
+                    </div>
+                    <div class="control-title">${control.title}</div>
+
+                    <div class="section-summary">
+                        <div class="quick-info">
+                            <span class="info-pill">📝 ${control.description}</span>
+                        </div>
                     </div>
 
-                    <div class="audit-evidence">
-                        <h4>📊 Required Evidence</h4>
-                        <div class="evidence-list">${control.evidence}</div>
+                    <details class="section-collapsible" open>
+                        <summary class="section-header">
+                            <span><span class="icon">🔧</span><strong>Implementation Steps</strong></span>
+                            <span class="expand-icon">▼</span>
+                        </summary>
+                        <div class="section-content">${control.implementation}</div>
+                    </details>
+
+                    <details class="section-collapsible">
+                        <summary class="section-header">
+                            <span><span class="icon">💡</span><strong>Best Practice Guidance</strong></span>
+                            <span class="expand-icon">▼</span>
+                        </summary>
+                        <div class="section-content">${control.guidance}</div>
+                    </details>
+
+                    <details class="section-collapsible">
+                        <summary class="section-header">
+                            <span><span class="icon">📊</span><strong>Required Evidence</strong></span>
+                            <span class="expand-icon">▼</span>
+                        </summary>
+                        <div class="section-content">${control.evidence}</div>
+                    </details>
+                    
+                    <div class="control-footer">
+                        <label class="checkbox-label">
+                            <input type="checkbox" 
+                                   class="checklist-checkbox" 
+                                   data-control-id="${control.id}"
+                                   ${isChecked ? 'checked' : ''}>
+                            Mark as Implemented
+                        </label>
                     </div>
                 `;
-
-                return card;
+            }
+            
+            renderKanbanCard(control, isChecked, typeLabel, typeClass, appliesToIcon, appliesToLabel) {
+                return `
+                    <div class="kanban-card-header">
+                        <div class="control-id">${control.id}</div>
+                        <span class="control-type-badge ${typeClass}">${typeLabel}</span>
+                    </div>
+                    <div class="control-title">${control.title}</div>
+                    <div class="kanban-meta">
+                        <span class="applies-to">${appliesToIcon} ${appliesToLabel}</span>
+                    </div>
+                    <div class="kanban-actions">
+                        <input type="checkbox" 
+                               class="checklist-checkbox" 
+                               data-control-id="${control.id}"
+                               ${isChecked ? 'checked' : ''}>
+                    </div>
+                `;
             }
 
             handleCheckboxChange(checkbox) {

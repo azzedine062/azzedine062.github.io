@@ -120,9 +120,24 @@ class FilterManager {
         // Handle no results scenario
         this.handleFilterResults(filteredControls);
 
-        // Update UI with filtered controls
-        this.uiComponents.renderControls(filteredControls);
+        // Update UI with filtered controls using ViewManager if available
+        if (window.viewManager) {
+            window.viewManager.renderView(filteredControls);
+        } else {
+            this.uiComponents.renderControls(filteredControls);
+        }
+        
         this.updateResultsCount(filteredControls.length, this.allControls.length);
+        
+        // Update progress tracker if available
+        if (window.app && window.app.progressTracker) {
+            window.app.progressTracker.updateProgress();
+        }
+        
+        // Update filter chips
+        if (document.getElementById('filterChips')) {
+            this.renderFilterChips();
+        }
         
         // Store last result count for comparison
         this.lastFilterResultCount = filteredControls.length;
@@ -473,6 +488,180 @@ class FilterManager {
             statusStats,
             activeFilters: Object.keys(this.filters).filter(key => this.filters[key])
         };
+    }
+    
+    /**
+     * Render filter chips (ENHANCED)
+     */
+    renderFilterChips() {
+        const container = document.getElementById('filterChips');
+        if (!container) return;
+        
+        const counts = this.getFilterCounts();
+        const chips = [];
+        
+        // Category chips
+        const categories = [
+            { value: '5', label: '📂 Organizational', count: counts.categories['5'] || 0 },
+            { value: '6', label: '👥 People', count: counts.categories['6'] || 0 },
+            { value: '7', label: '🏢 Physical', count: counts.categories['7'] || 0 },
+            { value: '8', label: '💻 Technological', count: counts.categories['8'] || 0 }
+        ];
+        
+        categories.forEach(cat => {
+            if (cat.count > 0) {
+                const activeClass = this.filters.category === cat.value ? 'active' : '';
+                chips.push(`
+                    <button class="chip ${activeClass}" data-filter="category" data-value="${cat.value}">
+                        ${cat.label} <span class="count">${cat.count}</span>
+                    </button>
+                `);
+            }
+        });
+        
+        // Status chips
+        const statuses = [
+            { value: 'implemented', label: '✅ Implemented', count: counts.statuses['implemented'] || 0 },
+            { value: 'in-progress', label: '⚡ In Progress', count: counts.statuses['in-progress'] || 0 },
+            { value: 'not-implemented', label: '⬜ Not Started', count: counts.statuses['not-implemented'] || 0 }
+        ];
+        
+        statuses.forEach(status => {
+            if (status.count > 0) {
+                const activeClass = this.filters.status === status.value ? 'active' : '';
+                chips.push(`
+                    <button class="chip ${activeClass}" data-filter="status" data-value="${status.value}">
+                        ${status.label} <span class="count">${status.count}</span>
+                    </button>
+                `);
+            }
+        });
+        
+        container.innerHTML = chips.join('');
+        
+        // Bind chip click events
+        container.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                const filterType = e.currentTarget.dataset.filter;
+                const filterValue = e.currentTarget.dataset.value;
+                this.toggleFilter(filterType, filterValue);
+            });
+        });
+    }
+    
+    /**
+     * Get filter counts
+     */
+    getFilterCounts() {
+        const counts = {
+            categories: {},
+            statuses: {}
+        };
+        
+        const complianceStatus = this.uiComponents.getComplianceStatus();
+        
+        this.allControls.forEach(control => {
+            // Count by category
+            const category = control.category || 'other';
+            counts.categories[category] = (counts.categories[category] || 0) + 1;
+            
+            // Count by status
+            const status = complianceStatus.get(control.id);
+            const statusKey = status ? status.status || 'not-implemented' : 'not-implemented';
+            counts.statuses[statusKey] = (counts.statuses[statusKey] || 0) + 1;
+        });
+        
+        return counts;
+    }
+    
+    /**
+     * Toggle filter
+     */
+    toggleFilter(filterType, filterValue) {
+        if (this.filters[filterType] === filterValue) {
+            this.filters[filterType] = '';
+        } else {
+            this.filters[filterType] = filterValue;
+        }
+        
+        this.applyFilters();
+        this.renderFilterChips();
+        this.renderActiveFilters();
+    }
+    
+    /**
+     * Render active filters
+     */
+    renderActiveFilters() {
+        const container = document.getElementById('activeFilters');
+        if (!container) return;
+        
+        const activeFilters = [];
+        
+        if (this.filters.category) {
+            const label = this.getCategoryLabel(this.filters.category);
+            activeFilters.push(`
+                <span class="active-chip">
+                    ${label}
+                    <button class="remove" onclick="window.app.filterManager.removeFilter('category')">×</button>
+                </span>
+            `);
+        }
+        
+        if (this.filters.status) {
+            const label = this.getStatusLabel(this.filters.status);
+            activeFilters.push(`
+                <span class="active-chip">
+                    ${label}
+                    <button class="remove" onclick="window.app.filterManager.removeFilter('status')">×</button>
+                </span>
+            `);
+        }
+        
+        if (activeFilters.length > 0) {
+            container.hidden = false;
+            container.innerHTML = activeFilters.join('') + `
+                <button class="clear-all" onclick="window.app.filterManager.resetFilters()">Clear all filters</button>
+            `;
+        } else {
+            container.hidden = true;
+        }
+    }
+    
+    /**
+     * Remove specific filter
+     */
+    removeFilter(filterType) {
+        this.filters[filterType] = '';
+        this.applyFilters();
+        this.renderFilterChips();
+        this.renderActiveFilters();
+    }
+    
+    /**
+     * Get category label
+     */
+    getCategoryLabel(category) {
+        const labels = {
+            '5': '📂 Organizational',
+            '6': '👥 People',
+            '7': '🏢 Physical',
+            '8': '💻 Technological'
+        };
+        return labels[category] || category;
+    }
+    
+    /**
+     * Get status label
+     */
+    getStatusLabel(status) {
+        const labels = {
+            'implemented': '✅ Implemented',
+            'in-progress': '⚡ In Progress',
+            'not-implemented': '⬜ Not Started',
+            'not-applicable': '➖ Not Applicable'
+        };
+        return labels[status] || status;
     }
 }
 
