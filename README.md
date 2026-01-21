@@ -1,50 +1,73 @@
 # Cloud Compliance Dashboard
 
-Provides detailed implementation guidance and best practices for each control to help organizations apply them effectively.
+A simple, practical dashboard for managing cloud security compliance. Map security frameworks to your cloud infrastructure, track implementation status, and generate audit reports.
 
 ![Cloud Compliance Dashboard](https://github.com/azzedine062/azzedine062.github.io/blob/main/Cloud%20Security%20Controls%20Mapping.png)
 
-I've created a simple dashboard that maps security standards and frameworks to specific cloud configurations and resources across cloud platforms like AWS and Azure. This tool is designed to bridge the gap between traditional information security controls and modern cloud environments.
+## What is this?
 
-Why?
+I built this dashboard to make cloud compliance less painful. It maps security standards like ISO 27001, ISO 27017, ISO 27018, and CSA CCM to actual cloud services and configurations on AWS, Azure, and GCP.
 
-Cloud security compliance can feel overwhelming, especially when trying to align traditional standards with constantly evolving cloud services. This dashboard is especially helpful for:
+Instead of reading through hundreds of pages of control requirements, you get practical implementation guides and can track your progress in one place.
 
-Organizations without a CSPM or CNAPP solution
+## Why?
 
-Auditors with limited cloud experience
+Cloud security compliance can feel overwhelming, especially when traditional standards don't clearly translate to cloud services. This tool helps:
 
-CISOs and security leads
+- **Organizations without expensive CSPM/CNAPP tools** - Get started with compliance tracking
+- **Auditors with limited cloud experience** - Understand what controls mean in cloud context
+- **CISOs and security leads** - Track compliance status across frameworks
+- **Cloud engineers and DevOps teams** - Know exactly what needs to be configured
 
-Cloud engineers or DevOps teams
+## What can you do with it?
 
-It provides direct, actionable insights on what needs to be configured, monitored, or remediated.
+- Choose your framework (ISO 27001, ISO 27017, ISO 27018, or CSA CCM v4)
+- See all controls with clear implementation guides
+- Map each control to specific cloud services (AWS, Azure, GCP)
+- Mark status: Implemented, In Progress, Not Implemented, or N/A
+- Add auditor comments and notes for each control
+- Track your overall compliance progress
+- Export everything to Excel or PDF for audits
 
-How?
+## How it works
 
-Maps each control from standards like ISO/IEC 27002:2022, ISO/IEC 27001:2015, ISO/IEC 27018:2019, and CSA Cloud Controls Matrix v4 to cloud-native resources, configurations, or services that need review.
+1. Pick your security framework from the home page
+2. Browse through all controls with detailed implementation guidance
+3. Click on cloud provider tabs to see specific service mappings
+4. Update the compliance status for each control
+5. Add notes about implementation details or evidence
+6. Export your compliance report when you need it
 
-Enables users to fill in compliance status, comments, and evidence per control — all in one place.
+All your progress is saved locally in your browser - no backend needed, no data leaves your machine.
 
-Can be used as a living compliance tracker, tailored for real-world cloud infrastructure.
+## Frameworks included
 
-Use Cases
+- **ISO/IEC 27002:2022** - 93 information security controls
+- **ISO/IEC 27017:2015** - Cloud security controls
+- **ISO/IEC 27018:2019** - PII protection in public clouds (GDPR aligned)
+- **CSA Cloud Controls Matrix v4** - 197 controls across 17 domains
 
-Prepare for ISO/IEC 27001 audits with cloud-specific evidence
+## Technical stuff
 
-Perform cloud security compliance checks
+Built with plain HTML, CSS, and JavaScript. No frameworks, no build steps, no backend. Just open it in a browser and it works.
 
-Track compliance status and fill in auditor-ready comments per control
+Your data stays in your browser's local storage. Nothing is sent to any server.
 
-Ensure alignment with cloud best practices and documentation
+## Use it for
 
+- Preparing for ISO 27001 audits with cloud evidence
+- Gap assessments and compliance checks
+- Creating audit-ready documentation
+- Learning how security controls apply to cloud
+- Training teams on cloud security requirements
 
-Open Source
+## Open Source
 
-This project is open source and built to help the security and cloud community bridge the gap between standards and real-world cloud implementations.
+This project is open source. Use it, fork it, adapt it for your needs. If it helps you with compliance or audits, that's the whole point.
 
-Feel free to use, adapt, or improve it for your own organization, audits, or learning.
+Built with help from AI tools (Claude.ai, ChatGPT) to speed up the control mapping and implementation guides.
 
-Parts of this project were created with the help of AI tools (e.g., Claude.ai, ChatGPT).
+---
 
+**License:** Feel free to use this for your organization, modify it, or share it with others who might find it helpful.
 
